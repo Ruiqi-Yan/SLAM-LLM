@@ -200,7 +200,7 @@ def main(kwargs: DictConfig):
 						audio_hat = codec_decoder.decode(audio)
 				elif code_type == "CosyVoice":
 					audio_hat = audio_decode_cosyvoice(audio_tokens, model_config, codec_decoder, tone_dir, audio_prompt_path, code_layer, num_latency_tokens, speed=1.0)
-					if audio_hat == -1:
+					if type(audio_hat) == type(-1):
 						logger.warning(f"Something wrong with audio tokens, skip.")
 						continue
 				else:

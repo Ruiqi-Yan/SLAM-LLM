@@ -1,5 +1,5 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=7
+export CUDA_VISIBLE_DEVICES=3
 export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=1
 export LD_LIBRARY_PATH=/data/yanruiqi/anaconda3/envs/omni/lib:$LD_LIBRARY_PATH
@@ -12,7 +12,7 @@ code_dir=/data/yanruiqi/SLAM-LLM/examples/benchmark
 whisper_size=small  # tiny base small medium large-v3
 speech_encoder_path="/data/model_weights/whisper/${whisper_size}.pt"   # different whisper size
 llm_path="/data/model_weights/Qwen2-0.5B"
-codec_decoder_path="/data/yanruiqi/SLAM-LLM/examples/benchmark/CosyVoice/CosyVoice-300M-SFT" # replace this with your own CosyVoice model path
+codec_decoder_path="/data/yanruiqi/model/CosyVoice/CosyVoice-300M-SFT" # replace this with your own CosyVoice model path
 
 encoder_dim=768  # 384 512 768 896 1024 1280 
 mel_size=80      # 80 128 (128 for whisper-large only)
@@ -21,17 +21,17 @@ llm_dim=896     # 896 1536 3584 8192  -> 0.5B 1.5B 3.5B 7B
 task_type=s2s
 
 # vocabulary settings
-code_layer=2            # 1 single semantic code layer   2 3 4 5 6 7 8 group semantic code layers 
+code_layer=3            # 1 single semantic code layer   2 3 4 5 6 7 8 group semantic code layers 
 total_audio_vocabsize=4160
 total_vocabsize=156160  # 152000 + 4160 Sry: Here is not elegant to set the total_vocabsize manually, I may fix it later :)
 
 # code settings
 code_type=CosyVoice     # CosyVoice or SNAC
 codec_decoder_type=CosyVoice
-num_latency_tokens=10    # number of latency tokens (same as the number in training)
+num_latency_tokens=3    # number of latency tokens (same as the number in training)
 do_layershift=false      # if false, tokens in each layers use the same codebook, otherwise, use different codebooks
 
-ckpt_path=/data/yanruiqi/SLAM-LLM/examples/benchmark/gpu4-btz6-lr5e-4-fp16-epochs10-whisper_small-group2-latency10
+ckpt_path=/data/yanruiqi/omni-models/gpu16_40g-btz2-lr5e-4-fp16-epochs10-whisper_small-latency5-group2
 split=test
 
 # jsonl dataset
@@ -40,7 +40,7 @@ split=test
 
 # huggingface dataset
 manifest_format=datasets
-val_data_path="/data/yanruiqi/SLAM-LLM/examples/benchmark/data/voicebench"
+val_data_path="/data/yanruiqi/data/voicebench"
 val_data_name="alpacaeval"     # alpacaeval，commoneval，sd-qa
 load_from_cache_file=true
 dataset_sample_seed=888

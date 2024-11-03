@@ -12,7 +12,7 @@ code_dir=/data/yanruiqi/SLAM-LLM/examples/benchmark/s2s
 whisper_size=small  # tiny base small medium large-v3
 speech_encoder_path="/data/model_weights/whisper/${whisper_size}.pt"   # different whisper size
 llm_path="/data/model_weights/Qwen2-0.5B"
-codec_decoder_path="/data/yanruiqi/SLAM-LLM/examples/benchmark/CosyVoice/CosyVoice-300M-SFT" # replace this with your own CosyVoice model path
+codec_decoder_path="/data/yanruiqi/model/CosyVoice/CosyVoice-300M-SFT" # replace this with your own CosyVoice model path
 
 encoder_dim=768  # 384 512 768 896 1024 1280 
 mel_size=80      # 80 128 (128 for whisper-large only)
@@ -31,7 +31,7 @@ codec_decoder_type=CosyVoice
 num_latency_tokens=10     # number of latency tokens (same as the number in training)
 do_layershift=false      # if false, tokens in each layers use the same codebook, otherwise, use different codebooks
 
-ckpt_path=/data/yanruiqi/SLAM-LLM/examples/benchmark/gpu4-btz3-lr5e-4-fp16-epochs10-whisper_small-single-latency10
+ckpt_path=/data/yanruiqi/omni-models/gpu16_40g-btz2-lr5e-4-fp16-epochs10-whisper_small-latency5-group2
 split=test
 
 # jsonl dataset
@@ -40,7 +40,7 @@ split=test
 
 # huggingface dataset
 manifest_format=datasets
-val_data_path="/data/yanruiqi/SLAM-LLM/examples/benchmark/data/voicebench"
+val_data_path="/data/yanruiqi/data/voicebench"
 val_data_name="alpacaeval"     # alpacaeval，commoneval，sd-qa
 load_from_cache_file=true
 dataset_sample_seed=888

@@ -172,9 +172,9 @@ def main(kwargs: DictConfig):
 			# output_text = model.tokenizer.batch_decode(text_outputs, add_special_tokens=False, skip_special_tokens=True)
 			output_text = model.tokenizer.decode(text_outputs, add_special_tokens=False, skip_special_tokens=True)
 			for key, source_text, target_text, generated_text in zip(batch["keys"], batch["source_texts"], batch["target_texts"], [output_text]):
-				q.write(str(step) + "\t" + source_text + "\n")
-				gt.write(str(step) + "\t" + target_text + "\n")
-				pred.write(str(step) + "\t" + generated_text + "\n")
+				q.write(str(step).zfill(4) + "\t" + source_text + "\n")
+				gt.write(str(step).zfill(4) + "\t" + target_text + "\n")
+				pred.write(str(step).zfill(4) + "\t" + generated_text + "\n")
 
 				if task_type == "s2s":
 					logger.info(f"Question: {source_text}")
@@ -211,8 +211,8 @@ def main(kwargs: DictConfig):
 				end_time = time.time()
 				audio_length = audio_hat.shape[1] / speech_sample_rate
 				RTF = (end_time - start_time) / audio_length
-				sf.write(f"{tone_audio_dir}/{str(step)}.wav", audio_hat.squeeze().cpu().numpy(), speech_sample_rate)
-				logger.info(f"Generated Audio: {tone_dir}/{str(step)}.wav, audio length: {audio_length:.2f}s, generation time: {end_time - start_time:.2f}s, RTF: {RTF:.2f}")
+				sf.write(f"{tone_audio_dir}/{str(step).zfill(4)}.wav", audio_hat.squeeze().cpu().numpy(), speech_sample_rate)
+				logger.info(f"Generated Audio: {tone_dir}/{str(step).zfill(4)}.wav, audio length: {audio_length:.2f}s, generation time: {end_time - start_time:.2f}s, RTF: {RTF:.2f}")
 
 	logger.info("============== Inference Finished ==============")
 

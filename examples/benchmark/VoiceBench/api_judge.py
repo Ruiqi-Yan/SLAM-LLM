@@ -107,10 +107,10 @@ def main():
                 # json_obj = json.loads(line.strip())  # Convert JSON string to dictionary    
                 reference.append(line.strip())
 
-        for i in range(len(answer)):
+        for i in range(min(len(question), len(answer))):
             data.append({'prompt': question[i], 'response': answer[i], 'reference': reference[i]})
     else:
-        for i in range(len(answer)):
+        for i in range(min(len(question), len(answer))):
             data.append({'prompt': question[i], 'response': answer[i]})
 
     # evaluate data

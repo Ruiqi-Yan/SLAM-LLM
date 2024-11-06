@@ -30,15 +30,19 @@ def main():
     parser.add_argument('--input_dir', type=str, required=True)
     parser.add_argument('--model_dir', type=str, required=True)
     parser.add_argument('--output_dir', type=str, required=True)
+    parser.add_argument('--number', type=int, required=True)
     args = parser.parse_args()
 
     pipe =set_whisper(args.model_dir)
     with open(os.path.join(args.output_dir, "asr_text"), 'w') as f:
-        for i in range(2 * len(os.listdir(args.input_dir))):
-            audio_file=os.path.join(args.input_dir, (str(i) + ".wav"))
+        for i in range(args.number):
+            audio_file=os.path.join(args.input_dir, (str(i).zfill(4) + ".wav"))
             if os.path.exists(audio_file):
-                result = pipe([audio_file])
-                f.write(str(i) + '\t' + result + '\n')
+                result = pipe([audio_file], batch_size=1)
+                f.write(str(i).zfill(4) + '\t' + result[0]['text'] + '\n')
+            else: 
+                result=" "
+                f.write(str(i).zfill(4) + '\t' + result + '\n')
             
 if __name__ == '__main__':
     main()

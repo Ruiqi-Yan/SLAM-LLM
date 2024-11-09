@@ -2,17 +2,17 @@
 export CUDA_VISIBLE_DEVICES=0
 export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=1
-export LD_LIBRARY_PATH=/data/yanruiqi/anaconda3/envs/omni/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/home/visitor/miniconda3/envs/yrq-omni/lib:$LD_LIBRARY_PATH
 export PYDEVD_WARN_SLOW_RESOLVE_TIMEOUT=2
 export CUDA_LAUNCH_BLOCKING=1
 
 
-code_dir=/data/yanruiqi/SLAM-LLM/examples/benchmark
+code_dir=/data/ruiqi.yan/SLAM-LLM/examples/benchmark
 
 whisper_size=small  # tiny base small medium large-v3
-speech_encoder_path="/data/model_weights/whisper/${whisper_size}.pt"   # different whisper size
-llm_path="/data/model_weights/Qwen2-0.5B"
-codec_decoder_path="/data/yanruiqi/model/CosyVoice/CosyVoice-300M-SFT" # replace this with your own CosyVoice model path
+speech_encoder_path="/data/ruiqi.yan/models/whisper/${whisper_size}.pt"   # different whisper size
+llm_path="/data/ruiqi.yan/omni_models/model/Qwen2-0.5B"
+codec_decoder_path="/data/ruiqi.yan/models/CosyVoice/pretrained_models/CosyVoice-300M-SFT" # replace this with your own CosyVoice model path
 
 encoder_dim=768  # 384 512 768 896 1024 1280 
 mel_size=80      # 80 128 (128 for whisper-large only)
@@ -40,7 +40,7 @@ split=test
 
 # huggingface dataset
 manifest_format=datasets
-val_data_path="/data/yanruiqi/data/voicebench"
+val_data_path="/data/ruiqi.yan/data/voicebench"
 val_data_name="alpacaeval"     # alpacaeval，commoneval，sd-qa
 load_from_cache_file=true
 dataset_sample_seed=888
@@ -64,7 +64,7 @@ upsampling_factor=1
 output_text_only=false
 speech_sample_rate=22050    # 22050 for CosyVoice, 24000 for SNAC
 inference_online=false
-audio_prompt_path=/data/yanruiqi/SLAM-LLM/examples/s2s/prompt/prompt_6.wav       # replace this with your own audio prompt path or our provided audio prompt path
+audio_prompt_path=/data/ruiqi.yan/SLAM-LLM/examples/s2s/prompt/prompt_6.wav       # replace this with your own audio prompt path or our provided audio prompt path
 audio_prompt=prompt_6
 
 decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_greedy_${val_data_name}
@@ -143,15 +143,39 @@ fi
 #         ++inference_online=$inference_online \
 #         ++speech_sample_rate=$speech_sample_rate \
 #         ++audio_prompt_path=$audio_prompt_path \
-#         ++log_config.log_file="/data/yanruiqi/exp/s2s/debug/inference.log"    # put your log_file here
+#         ++log_config.log_file="/data/ruiqi.yan/exp/s2s/debug/inference.log"    # put your log_file here
 
 # bash ./examples/s2s/scripts/inference/inference_s2s_cosyvoice_group.sh
 
 output_dir=$decode_log/eval_with_asr/${val_data_name}
 data_number=199         # 199, 200, 553 for alpacaeval，commoneval，sd-qa
 
-python -m debugpy --listen 5678 --wait-for-client $code_dir/s2s/asr_for_eval.py \
+python $code_dir/s2s/asr_for_eval.py \
         --input_dir $decode_log/pred_audio/$audio_prompt \
         --model_dir "/data/yanruiqi/model/whisper-large-v3" \
         --output_dir $decode_log \
-        --number $data_number        
+        --number $data_number
+
+if [ "$val_data_name" = "sd-qa" ]; then
+    evaluator="qa"
+    python $code_dir/VoiceBench/api_judge.py \
+        --question $decode_log/question_text \
+        --answer $decode_log/asr_text \
+        --output_dir $output_dir \
+        --dataset $val_data_name \
+        --reference $decode_log/gt_text
+fi
+
+if [ "$val_data_name" != "sd-qa" ]; then
+    evaluator="open"
+    python $code_dir/VoiceBench/api_judge.py \
+        --question $decode_log/question_text \
+        --answer $decode_log/asr_text \
+        --output_dir $output_dir \
+        --dataset $val_data_name
+fi
+
+python $code_dir/VoiceBench/evaluate.py \
+        --src_file $output_dir/result.jsonl \
+        --evaluator $evaluator \
+        --dataset $val_data_name                

@@ -150,7 +150,7 @@ fi
 output_dir=$decode_log/eval_with_asr/${val_data_name}
 data_number=199         # 199, 200, 553 for alpacaeval，commoneval，sd-qa
 
-python $code_dir/s2s/asr_for_eval.py \
+python $code_dir/asr_for_eval.py \
         --input_dir $decode_log/pred_audio/$audio_prompt \
         --model_dir "/data/yanruiqi/model/whisper-large-v3" \
         --output_dir $decode_log \

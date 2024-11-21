@@ -7,12 +7,12 @@ export PYDEVD_WARN_SLOW_RESOLVE_TIMEOUT=2
 export CUDA_LAUNCH_BLOCKING=1
 
 
-code_dir=/data/yanruiqi/SLAM-LLM/examples/benchmark
+code_dir=/data/ruiqi.yan/SLAM-LLM/examples/benchmark
 
 whisper_size=small  # tiny base small medium large-v3
-speech_encoder_path="/data/model_weights/whisper/${whisper_size}.pt"   # different whisper size
-llm_path="/data/model_weights/Qwen2-0.5B"
-codec_decoder_path="/data/yanruiqi/model/CosyVoice/CosyVoice-300M-SFT" # replace this with your own CosyVoice model path
+speech_encoder_path="/data/ruiqi.yan/models/whisper/${whisper_size}.pt"   # different whisper size
+llm_path="/data/ruiqi.yan/omni_models/model/Qwen2-0.5B"
+codec_decoder_path="/data/ruiqi.yan/models/CosyVoice/pretrained_models/CosyVoice-300M-SFT" # replace this with your own CosyVoice model path
 
 encoder_dim=768  # 384 512 768 896 1024 1280 
 mel_size=80      # 80 128 (128 for whisper-large only)
@@ -28,10 +28,10 @@ total_vocabsize=156160  # 152000 + 4160 Sry: Here is not elegant to set the tota
 # code settings
 code_type=CosyVoice     # CosyVoice or SNAC
 codec_decoder_type=CosyVoice
-num_latency_tokens=3    # number of latency tokens (same as the number in training)
+num_latency_tokens=5    # number of latency tokens (same as the number in training)
 do_layershift=false      # if false, tokens in each layers use the same codebook, otherwise, use different codebooks
 
-ckpt_path=/data/yanruiqi/omni-models/gpu16-btz2-lr5e-4-fp16-epochs10-whisper_small-latency3-group2
+ckpt_path=/data/ruiqi.yan/omni_models/model/gpu16_40g-btz2-lr5e-4-fp16-epochs10-whisper_small-latency5-group2
 split=test
 
 # jsonl dataset
@@ -40,8 +40,8 @@ split=test
 
 # huggingface dataset
 manifest_format=datasets
-val_data_path="/data/yanruiqi/data/voicebench"
-val_data_name="alpacaeval"     # alpacaeval，commoneval，sd-qa
+val_data_path="/data/ruiqi.yan/data/voicebench"
+val_data_name="sd-qa"     # alpacaeval，commoneval，sd-qa
 load_from_cache_file=true
 dataset_sample_seed=888
 
@@ -51,7 +51,7 @@ group_decode=true
 group_decode_adapter_type=linear
 
 # decode config
-text_repetition_penalty=1.2
+text_repetition_penalty=1.0
 audio_repetition_penalty=1.22        # default 1.0, set to 1.2 for reduce silence
 max_new_tokens=3000                 # 500 for SNAC, 3000 for CosyVoice-single
 do_sample=false
@@ -64,7 +64,7 @@ upsampling_factor=1
 output_text_only=false
 speech_sample_rate=22050    # 22050 for CosyVoice, 24000 for SNAC
 inference_online=false
-audio_prompt_path=/data/yanruiqi/SLAM-LLM/examples/s2s/prompt/prompt_6.wav       # replace this with your own audio prompt path or our provided audio prompt path
+audio_prompt_path=/data/ruiqi.yan/SLAM-LLM/examples/s2s/prompt/prompt_6.wav       # replace this with your own audio prompt path or our provided audio prompt path
 audio_prompt=prompt_6
 
 decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_greedy_${val_data_name}
@@ -143,16 +143,16 @@ python $code_dir/s2s/inference_s2s.py \
         ++inference_online=$inference_online \
         ++speech_sample_rate=$speech_sample_rate \
         ++audio_prompt_path=$audio_prompt_path \
-        ++log_config.log_file="/data/yanruiqi/exp/s2s/debug/inference.log"    # put your log_file here
+        ++log_config.log_file="/data/ruiqi.yan/exp/s2s/debug/inference.log"    # put your log_file here
 
 # bash ./examples/s2s/scripts/inference/inference_s2s_cosyvoice_group.sh
 
 output_dir=$decode_log/eval_with_asr/${val_data_name}
-data_number=199         # 199, 200, 553 for alpacaeval，commoneval，sd-qa
+data_number=553         # 199, 200, 553 for alpacaeval，commoneval，sd-qa
 
 python $code_dir/asr_for_eval.py \
         --input_dir $decode_log/pred_audio/$audio_prompt \
-        --model_dir "/data/yanruiqi/model/whisper-large-v3" \
+        --model_dir "/data/ruiqi.yan/models/whisper-large-v3" \
         --output_dir $decode_log \
         --number $data_number
 

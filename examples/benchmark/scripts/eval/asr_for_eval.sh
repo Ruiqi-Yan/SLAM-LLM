@@ -1,5 +1,5 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=1
 export LD_LIBRARY_PATH=/home/visitor/miniconda3/envs/yrq-omni/lib:$LD_LIBRARY_PATH
@@ -28,10 +28,10 @@ total_vocabsize=156160  # 152000 + 4160 Sry: Here is not elegant to set the tota
 # code settings
 code_type=CosyVoice     # CosyVoice or SNAC
 codec_decoder_type=CosyVoice
-num_latency_tokens=3    # number of latency tokens (same as the number in training)
+num_latency_tokens=5    # number of latency tokens (same as the number in training)
 do_layershift=false      # if false, tokens in each layers use the same codebook, otherwise, use different codebooks
 
-ckpt_path=/data/yanruiqi/omni-models/gpu16-btz2-lr5e-4-fp16-epochs10-whisper_small-latency3-group2
+ckpt_path=/data/ruiqi.yan/omni_models/model/gpu16_40g-btz2-lr5e-4-fp16-epochs10-whisper_small-latency5-group2
 split=test
 
 # jsonl dataset
@@ -41,7 +41,7 @@ split=test
 # huggingface dataset
 manifest_format=datasets
 val_data_path="/data/ruiqi.yan/data/voicebench"
-val_data_name="alpacaeval"     # alpacaeval，commoneval，sd-qa
+val_data_name="sd-qa"     # alpacaeval，commoneval，sd-qa
 load_from_cache_file=true
 dataset_sample_seed=888
 
@@ -148,11 +148,11 @@ fi
 # bash ./examples/s2s/scripts/inference/inference_s2s_cosyvoice_group.sh
 
 output_dir=$decode_log/eval_with_asr/${val_data_name}
-data_number=199         # 199, 200, 553 for alpacaeval，commoneval，sd-qa
+data_number=553         # 199, 200, 553 for alpacaeval，commoneval，sd-qa
 
 python $code_dir/asr_for_eval.py \
         --input_dir $decode_log/pred_audio/$audio_prompt \
-        --model_dir "/data/yanruiqi/model/whisper-large-v3" \
+        --model_dir "/data/ruiqi.yan/models/whisper-large-v3" \
         --output_dir $decode_log \
         --number $data_number
 
@@ -178,4 +178,4 @@ fi
 python $code_dir/VoiceBench/evaluate.py \
         --src_file $output_dir/result.jsonl \
         --evaluator $evaluator \
-        --dataset $val_data_name                
+        --dataset $val_data_name   

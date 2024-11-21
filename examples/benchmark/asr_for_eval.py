@@ -3,6 +3,8 @@ from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 from datasets import load_dataset
 from argparse import ArgumentParser
 import os
+from tqdm import tqdm
+import logging
 
 def set_whisper(model_dir):
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -33,15 +35,25 @@ def main():
     parser.add_argument('--number', type=int, required=True)
     args = parser.parse_args()
 
-    pipe =set_whisper(args.model_dir)
+    # Set log
+    logging.basicConfig(
+		level=logging.INFO, 
+		format="[%(asctime)s][%(name)s][%(levelname)s] - %(message)s",
+		datefmt="%Y-%m-%d %H:%M:%S"
+	)
+
+    pipe = set_whisper(args.model_dir)
+
+    # ASR
+    logging.info(f"<========ASR starts========>")
     with open(os.path.join(args.output_dir, "asr_text"), 'w') as f:
-        for i in range(args.number):
-            audio_file=os.path.join(args.input_dir, (str(i).zfill(4) + ".wav"))
+        for i in tqdm(range(args.number)):
+            audio_file = os.path.join(args.input_dir, (str(i).zfill(4) + ".wav"))
             if os.path.exists(audio_file):
                 result = pipe([audio_file], batch_size=1)
                 f.write(str(i).zfill(4) + '\t' + result[0]['text'] + '\n')
             else: 
-                result=" "
+                result = " "
                 f.write(str(i).zfill(4) + '\t' + result + '\n')
             
 if __name__ == '__main__':

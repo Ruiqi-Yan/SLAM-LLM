@@ -8,7 +8,7 @@ export CUDA_LAUNCH_BLOCKING=1
 
 # code dir
 code_dir=/data/ruiqi.yan/SLAM-LLM/examples/benchmark
-ckpt_dir=/data/ruiqi.yan/omni_models/LLaMA-Omni-test
+ckpt_dir=/data/ruiqi.yan/omni_models/mini-omni-test/checkpoint
 
 # jsonl dataset
 manifest_format=jsonl
@@ -16,7 +16,7 @@ val_data_name="sd-qa"     # alpacaeval，commoneval，sd-qa
 val_data_path=/data/ruiqi.yan/data/voicebench_raw/${val_data_name}/test.jsonl
 
 # inference output dir
-decode_log=/data/ruiqi.yan/omni_models/LLaMA-Omni-test/${val_data_name}
+decode_log=/data/ruiqi.yan/omni_models/mini-omni-test/${val_data_name}
 
 # huggingface dataset
 # manifest_format=datasets
@@ -26,36 +26,28 @@ decode_log=/data/ruiqi.yan/omni_models/LLaMA-Omni-test/${val_data_name}
 # dataset_sample_seed=888
 
 
-cd $ckpt_dir
-source /home/visitor/miniconda3/etc/profile.d/conda.sh
-conda activate yrq-llama-omni          # put your environment name here
 # -m debugpy --listen 5678 --wait-for-client
-python $code_dir/LLaMA-Omni-test/inference_for_eval.py \
-        --dataset $val_data_path \
-        --results-path $decode_log \
-        --s2s \
-        --dur-prediction \
-        --model-path $ckpt_dir/models/Llama-3.1-8B-Omni \
-        --vocoder $ckpt_dir/vocoder/g_00500000 \
-        --vocoder-cfg $ckpt_dir/vocoder/config.json
-
-
-source /home/visitor/miniconda3/etc/profile.d/conda.sh
-conda activate yrq-omni          # put your environment name here
-output_dir=$decode_log/eval/${val_data_name}
-# data_number=199         # 199, 200, 553 for alpacaeval，commoneval，sd-qa
-
-# python $code_dir/asr_for_eval.py \
-#         --input_dir $decode_log/audio \
-#         --model_dir "/data/ruiqi.yan/models/whisper-large-v3" \
+# python $code_dir/mini-omni-test/inference_for_eval.py \
+#         --dataset $val_data_path \
 #         --output_dir $decode_log \
-#         --number $data_number
+#         --ckpt_dir $ckpt_dir \
+#         --error_list "84,390,418"     # "13,52", "", "84,390,418" for alpacaeval，commoneval，sd-qa
+        
+
+output_dir=$decode_log/eval_with_asr/${val_data_name}
+data_number=553         # 199, 200, 553 for alpacaeval，commoneval，sd-qa
+
+python $code_dir/asr_for_eval.py \
+        --input_dir $decode_log/audio \
+        --model_dir "/data/ruiqi.yan/models/whisper-large-v3" \
+        --output_dir $decode_log \
+        --number $data_number
 
 if [ "$val_data_name" = "sd-qa" ]; then
     evaluator="qa"
     python $code_dir/VoiceBench/api_judge.py \
         --question $decode_log/question_text \
-        --answer $decode_log/pred_text \
+        --answer $decode_log/asr_text \
         --output_dir $output_dir \
         --dataset $val_data_name \
         --reference $decode_log/gt_text
@@ -65,7 +57,7 @@ if [ "$val_data_name" != "sd-qa" ]; then
     evaluator="open"
     python $code_dir/VoiceBench/api_judge.py \
         --question $decode_log/question_text \
-        --answer $decode_log/pred_text \
+        --answer $decode_log/asr_text \
         --output_dir $output_dir \
         --dataset $val_data_name
 fi

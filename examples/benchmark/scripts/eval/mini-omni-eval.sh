@@ -39,7 +39,7 @@ output_dir=$decode_log/eval/${val_data_name}
 
 # python $code_dir/asr_for_eval.py \
 #         --input_dir $decode_log/audio \
-#         --model_dir "/data/yanruiqi/model/whisper-large-v3" \
+#         --model_dir "/data/ruiqi.yan/models/whisper-large-v3" \
 #         --output_dir $decode_log \
 #         --number $data_number
 

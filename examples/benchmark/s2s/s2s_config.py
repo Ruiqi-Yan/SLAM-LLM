@@ -96,6 +96,7 @@ class ModelConfig:
     code_type: str = "SNAC" 
     group_decode: bool = False
     group_decode_adapter_type: str = "linear"
+    whisper_decode: bool = False
 
 
 @dataclass
@@ -158,6 +159,8 @@ class TrainConfig:
     train_embed_only:bool = False
     train_audio_embed_only:bool = False
     task_type:str = "s2s"
+    freeze_encoder_projector:bool = False
+    freeze_group_decode_adapter:bool = False
 
 
 
@@ -167,7 +170,6 @@ class DataConfig:
     file: str = "examples/s2s/speech_dataset_s2s.py:get_speech_dataset"
     train_data_path: Optional[str] = None
     val_data_path: Optional[str] = None
-    val_data_name: Optional[str] = None
     train_split: str = "train"
     test_split:str = "validation"
     prompt: Optional[str] = None

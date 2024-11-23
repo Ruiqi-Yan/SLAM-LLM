@@ -26,7 +26,7 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         self.IGNORE_INDEX = -100  # The default setting in CrossEntropyLoss
         self.prompt = dataset_config.get("prompt", None)
         self.mel_size = dataset_config.get("mel_size", 80) # 80 for whisper large v1 and v2, 128 for large v3
-        self.prompt_template = "USER: {}\n ASSISTANT: "
+        self.prompt_template = "<SYSTEM>: {}\n "
         self.answer_template = "{}"
         self.fix_length_audio = dataset_config.get("fix_length_audio", -1)
         self.inference_mode = dataset_config.get("inference_mode", False)
@@ -92,15 +92,14 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         if self.manifest_format == "datasets":
             from datasets import load_dataset, load_from_disk
             if dataset_config.load_from_cache_file:       
-                ds = load_dataset(dataset_config.val_data_path, dataset_config.val_data_name)       # load_from huggingface datasets
+                ds = load_dataset(dataset_config.train_data_path)       # load_from huggingface datasets
             else:
-                ds = load_from_disk(dataset_config.val_data_path)   # load_from local disk
+                ds = load_from_disk(dataset_config.train_data_path)   # load_from local disk
+            train_val_split = ds['train'].train_test_split(test_size=self.split_size, seed=self.seed)
             if split == "train":
-                self.data_list = ds['train']
+                self.data_list = train_val_split['train']
             else:
-                if dataset_config.val_data_name == 'sd-qa':
-                    self.data_list = ds['usa']
-                else: self.data_list = ds['test']
+                self.data_list = train_val_split['test']
         else:
             if split == "train":
                 with open(dataset_config.train_data_path, encoding='utf-8') as fin:
@@ -236,17 +235,15 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
         target_audio_length = 0
 
         if self.manifest_format == "datasets":
-            source_audio = data_dict.get("audio", None)
+            source_audio = data_dict.get("question_audio", None)
             if self.code_type == "SNAC":
-                target_audio = data_dict.get("audio", None)
+                target_audio = data_dict.get("answer_snac", None)
             elif self.code_type == "CosyVoice":
-                target_audio = data_dict.get("audio", None)
-            source_text = data_dict.get("prompt", None)
-            if self.dataset_config.val_data_name == 'sd-qa':
-                target_text = data_dict.get("reference", None)
-            else: target_text = data_dict.get("prompt", None)
+                target_audio = data_dict.get("answer_cosyvoice_speech_token", None)
+            source_text = data_dict.get("question", None)
+            target_text = data_dict.get("answer", None)
             if source_audio is not None:
-                key = ""
+                key = source_audio['path']
         elif self.manifest_format == "jsonl":
             source_audio = data_dict.get("source_wav", None)
             target_audio = data_dict.get("target_wav", None)
@@ -260,13 +257,21 @@ class SpeechDatasetJsonl(torch.utils.data.Dataset):
             audio_mel, audio_length = self.extract_audio_feature(source_audio)
         
         if task_type == "s2s" or task_type == "tts":
-            target_audio, target_audio_length = self.extract_audio_feature(target_audio)
+            if target_audio is not None:
+                target_audio, target_audio_length = self.extract_audio_feature(target_audio)
 
         if self.fix_length_audio > 0:
             audio_length = self.fix_length_audio
 
         prompt = self.prompt
         prompt = self.prompt_template.format(prompt)
+
+        # add history conversation in front of the prompt
+        if source_text is not None and "<USER>:" in source_text:
+            history_chat = source_text.rsplit("<USER>:", 1)[0].strip()
+            if history_chat:
+                prompt = prompt + history_chat + "\n "
+
         prompt_ids = self.tokenizer.encode(prompt)
         prompt_ids = [self._input_t] + prompt_ids + [self._eot]
         prompt_length = len(prompt_ids)

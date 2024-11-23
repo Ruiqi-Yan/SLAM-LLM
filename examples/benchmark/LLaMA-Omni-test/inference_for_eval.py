@@ -153,7 +153,6 @@ def generate_waveform(args, prediction_units, id):
         sf.write(f"{args.results_path}/audio/{id}.wav", wav.detach().cpu().numpy(), 16000)
 
 def main():
-    os.environ["CUDA_VISIBLE_DEVICES"] = '2'
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", type=str, default="Llama-3.1-8B-Omni")
     parser.add_argument("--model-base", type=str, default=None)
@@ -191,13 +190,13 @@ def main():
         for step, item in tqdm(enumerate(jsonlines.Reader(f)), total=data_length):
             if 'target_text' in item:
                 question = {"id": str(step).zfill(4),
-                            "speech": item['source_wav'],
+                            "speech": os.path.join(os.path.dirname(args.dataset), item['source_wav']),
                             "conversations": [{"from": "human", "value": "<speech>\nPlease directly answer the questions in the user's speech."}],
                             "question": item['source_text'],
                             "target": item['target_text']}
             else:
                 question = {"id": str(step).zfill(4),
-                            "speech": item['source_wav'],
+                            "speech": os.path.join(os.path.dirname(args.dataset), item['source_wav']),
                             "conversations": [{"from": "human", "value": "<speech>\nPlease directly answer the questions in the user's speech."}],
                             "question": item['source_text'],
                             "target": item['source_text']}
@@ -212,13 +211,15 @@ def main():
     question_text = os.path.join(args.results_path, "question_text")
     gt_text = os.path.join(args.results_path, "gt_text")
     results = eval_model(args, questions)
-    with open(pred_text, 'w') as pt, open(question_text, 'w') as qt, open(gt_text, 'w') as gt:
+    with jsonlines.open(pred_text, mode='w') as pt, jsonlines.open(question_text, mode='w') as qt, jsonlines.open(gt_text, mode='w') as gt:
         for result in results:
             logging.info(f"Input text: {result['question']}")
             logging.info(f"Output text: {result['prediction']}")
-            pt.write(result['question_id'] + '\t' + result['prediction'] + '\n')
-            qt.write(result['question_id'] + '\t' + result['question'] + '\n')
-            gt.write(result['question_id'] + '\t' + result['target'] + '\n')
+            pt.write({result['question_id']: result['prediction']})
+            qt.write({result['question_id']: result['question']})
+            if isinstance(result['target'], list):
+                gt.write({result['question_id']: ' / '.join(result['target'])})
+            else: gt.write({result['question_id']: result['target']})
             if args.s2s:
                 generate_waveform(args, result['prediction_units'], result['question_id'])
                 logging.info(f"output audio saved to {output_audio_path}/{result['question_id']}.wav")

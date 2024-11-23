@@ -177,9 +177,9 @@ def main():
     fabric, model, text_tokenizer, snacmodel, whispermodel = load_from_checkpoint(device, args.ckpt_dir)
     logging.info("<========inference starts========>")
 
-    with open(args.dataset, 'r') as f, open(pred_text, 'w') as pt, open(question_text, 'w') as qt, open(gt_text, 'w') as gt:
+    with open(args.dataset, 'r') as f, jsonlines.open(pred_text, mode='w') as pt, jsonlines.open(question_text, mode='w') as qt, jsonlines.open(gt_text, mode='w') as gt:
         for step, item in enumerate(jsonlines.Reader(f)):
-            input_path = item["source_wav"]
+            input_path = os.path.join(os.path.dirname(args.dataset), item["source_wav"])
             input_text = item["source_text"]
             if 'target_text' in item:
                 target_text = item['target_text']
@@ -192,33 +192,41 @@ def main():
                 if str(step) in error_list:    # nothing to fix cuda error and continue but use this inelegant way
                     logging.warning(f"Exception occurred, skip")
                     text = ""
-                    pt.write(str(step).zfill(4) + "\t" + text + "\n")
-                    qt.write(str(step).zfill(4) + "\t" + input_text + "\n")
-                    gt.write(str(step).zfill(4) + "\t" + target_text + "\n")
+                    pt.write({str(step).zfill(4): text})
+                    qt.write({str(step).zfill(4): input_text})
+                    if isinstance(target_text, list):
+                        gt.write({str(step).zfill(4): ' / '.join(target_text)})
+                    else: gt.write({str(step).zfill(4): target_text})
                 else:
                     text = A1_A2(fabric, audio_feature, input_ids, leng, model, text_tokenizer, step, snacmodel, output_dir)
                     logging.info(f"Input text: {input_text}")
                     logging.info(f"Output text: {text}")
                     logging.info(f"output audio saved to {output_audio_dir}/{step:04d}.wav")
-                    pt.write(str(step).zfill(4) + "\t" + text + "\n")
-                    qt.write(str(step).zfill(4) + "\t" + input_text + "\n")
-                    gt.write(str(step).zfill(4) + "\t" + target_text + "\n")
+                    pt.write({str(step).zfill(4): text})
+                    qt.write({str(step).zfill(4): input_text})
+                    if isinstance(target_text, list):
+                        gt.write({str(step).zfill(4): ' / '.join(target_text)})
+                    else: gt.write({str(step).zfill(4): target_text})
             elif mode == "T1A2":
                 input_ids = get_input_ids_TA(input_text, text_tokenizer)
                 if str(step) in error_list:    # nothing to fix cuda error and continue but use this inelegant way
                     logging.warning(f"Exception occurred, skip")
                     text_output = ""
-                    pt.write(str(step).zfill(4) + "\t" + text_output + "\n")
-                    qt.write(str(step).zfill(4) + "\t" + input_text + "\n")
-                    gt.write(str(step).zfill(4) + "\t" + target_text + "\n")
+                    pt.write({str(step).zfill(4): text_output})
+                    qt.write({str(step).zfill(4): input_text})
+                    if isinstance(target_text, list):
+                        gt.write({str(step).zfill(4): ' / '.join(target_text)})
+                    else: gt.write({str(step).zfill(4): target_text})
                 else:    
                     text_output = T1_A2(fabric, input_ids, model, text_tokenizer, step, snacmodel, output_dir)
                     logging.info(f"Input text: {input_text}")
                     logging.info(f"Output text: {text_output}")
                     logging.info(f"output audio saved to {output_audio_dir}/{step:04d}.wav")
-                    pt.write(str(step).zfill(4) + "\t" + text_output + "\n")
-                    qt.write(str(step).zfill(4) + "\t" + input_text + "\n")
-                    gt.write(str(step).zfill(4) + "\t" + target_text + "\n")
+                    pt.write({str(step).zfill(4): text_output})
+                    qt.write({str(step).zfill(4): input_text})
+                    if isinstance(target_text, list):
+                        gt.write({str(step).zfill(4): ' / '.join(target_text)})
+                    else: gt.write({str(step).zfill(4): target_text})
             else:
                 logging.warning("Invalid mode selected. Please choose either 'A1A2' or 'T1A2'.")
 

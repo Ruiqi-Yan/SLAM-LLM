@@ -1,24 +1,12 @@
 #!/bin/bash
 # export CUDA_VISIBLE_DEVICES=0
 # export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
-export CUDA_VISIBLE_DEVICES=4,5,6,7
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=1
-export LD_LIBRARY_PATH=/data/yanruiqi/anaconda3/envs/omni/lib:$LD_LIBRARY_PATH
-export WANDB_API_KEY=190a78fbb87a1d0adc7bd1974f010936ca092970       # please replace with your own wandb key thxxxx, unless you want to share your experiment results with me :)
+export LD_LIBRARY_PATH=/home/v-wenxichen/anaconda3/envs/slam/lib:$LD_LIBRARY_PATH
+export WANDB_API_KEY=406faa59cf62a3646fa3479a7e133c4cf5a77100       # please replace with your own wandb key thxxxx, unless you want to share your experiment results with me :)
 
-code_dir=/data/yanruiqi/SLAM-LLM/examples/s2s
-
-whisper_size=small  # tiny base small medium large-v3
-speech_encoder_path="/data/model_weights/whisper/small.pt"   # different whisper size
-llm_path="/data/model_weights/Qwen2-0.5B"  # Qwen/Qwen2-0.5B
-
-encoder_dim=768 # 384 512 768 1024 1280
-mel_size=80 # 80 128 ( only whisper-large supports 128 )
-
-train_data_path="/data/VoiceAssistant-400K"
-val_data_path="/data/VoiceAssistant-400K"
-load_from_cache_file=true  # set to true if you have already generated the cache file, otherwise set to false
 code_dir=examples/s2s
 num_gpus_per_node=$(( $(echo ${CUDA_VISIBLE_DEVICES} | tr -cd ',' | wc -c) + 1 ))
 num_nodes=1
@@ -39,7 +27,7 @@ load_from_cache_file=false  # set to true if you have already generated the cach
 
 # training settings
 batch_size_training=4
-use_fp16=true
+use_fp16=false
 num_epochs=10
 lr=5e-4
 train_audio_embed_only=false
@@ -57,8 +45,7 @@ fi
 # exp_name="s2s_train_v0_gpu24_btz${batch_size_training}_fp16"
 # exp_name="debug"
 
-home_dir=/data/yanruiqi/exp/s2s
-wandb_dir=/data/yanruiqi/exp/wandb_log
+home_dir=/valleblob/v-wenxichen/exp/s2s
 # output_dir=$home_dir/$(TZ='Asia/Shanghai' date +"%Y_%m_%d")/$(TZ='Asia/Shanghai' date +"%H_%M_%S")
 output_dir=$home_dir/$exp_name
 # ckpt_path=/valleblob/v-wenxichen/exp/s2s/2024_09_26/s2s_train_v0_gpu4_btz4/s2s_epoch_2_step_20982  # this line is for resuming training
@@ -110,10 +97,10 @@ hydra.run.dir=$output_dir \
 ++train_config.task_type=$task_type \
 ++metric=acc \
 ++log_config.use_wandb=$use_wandb \
-++log_config.wandb_entity_name=rq_yan-sjtu \
+++log_config.wandb_entity_name=wxc12 \
 ++log_config.wandb_project_name=SLAM-Omni \
 ++log_config.wandb_exp_name=$wandb_exp_name \
-++log_config.wandb_dir=$wandb_dir \
+++log_config.wandb_dir=$output_dir \
 ++log_config.log_file=$output_dir/exp.log \
 ++log_config.log_interval=100 \
 "

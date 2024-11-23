@@ -2,6 +2,7 @@
 import random
 import torch
 import logging
+import jsonlines
 
 from slam_llm.utils.model_utils import get_custom_model_factory
 from slam_llm.utils.dataset_utils import get_preprocessed_dataset
@@ -161,7 +162,7 @@ def main(kwargs: DictConfig):
 
 	logger.info("============== Start {task_type} Inference ==============".format(task_type=task_type))
 
-	with open(pred_path, "w") as pred, open(gt_path, "w") as gt, open(question_path, "w") as q:
+	with jsonlines.open(pred_path, mode="w") as pred, jsonlines.open(gt_path, mode="w") as gt, jsonlines.open(question_path, mode="w") as q:
 		for step, batch in enumerate(test_dataloader):
 			for key in batch.keys():
 				batch[key] = batch[key].to(device) if isinstance(batch[key], torch.Tensor) else batch[key]
@@ -169,12 +170,18 @@ def main(kwargs: DictConfig):
 			model_outputs = model.generate(**batch, **decode_config)
 			text_outputs = model_outputs[code_layer]
 			audio_outputs = model_outputs[:code_layer]
+			end_time_llm = time.time()
+			logger.info(f"LLM Inference Time: {end_time_llm - start_time:.2f}s")
 			# output_text = model.tokenizer.batch_decode(text_outputs, add_special_tokens=False, skip_special_tokens=True)
 			output_text = model.tokenizer.decode(text_outputs, add_special_tokens=False, skip_special_tokens=True)
 			for key, source_text, target_text, generated_text in zip(batch["keys"], batch["source_texts"], batch["target_texts"], [output_text]):
-				q.write(str(step).zfill(4) + "\t" + source_text + "\n")
-				gt.write(str(step).zfill(4) + "\t" + target_text + "\n")
-				pred.write(str(step).zfill(4) + "\t" + generated_text + "\n")
+				q.write({str(step).zfill(4): source_text})
+				if target_text is not None:
+					if isinstance(target_text, list):
+						gt.write({str(step).zfill(4): " / ".join(target_text)})
+					else: gt.write({str(step).zfill(4): target_text})
+				else: gt.write({str(step).zfill(4): source_text})
+				pred.write({str(step).zfill(4): generated_text})
 
 				if task_type == "s2s":
 					logger.info(f"Question: {source_text}")
@@ -200,19 +207,18 @@ def main(kwargs: DictConfig):
 						audio_hat = codec_decoder.decode(audio)
 				elif code_type == "CosyVoice":
 					audio_hat = audio_decode_cosyvoice(audio_tokens, model_config, codec_decoder, tone_dir, audio_prompt_path, code_layer, num_latency_tokens, speed=1.0)
-					if type(audio_hat) == type(-1):
-						logger.warning(f"Something wrong with audio tokens, skip.")
-						continue
 				else:
 					raise NotImplementedError
-
-				if key[-4:] == ".wav":
-					key = key[:-4]
+				if key is not None:
+					if key[-4:] == ".wav":
+						key = key[:-4]
 				end_time = time.time()
 				audio_length = audio_hat.shape[1] / speech_sample_rate
 				RTF = (end_time - start_time) / audio_length
 				sf.write(f"{tone_audio_dir}/{str(step).zfill(4)}.wav", audio_hat.squeeze().cpu().numpy(), speech_sample_rate)
 				logger.info(f"Generated Audio: {tone_dir}/{str(step).zfill(4)}.wav, audio length: {audio_length:.2f}s, generation time: {end_time - start_time:.2f}s, RTF: {RTF:.2f}")
+				RTF_llm = (end_time_llm - start_time) / audio_length
+				logger.info(f"LLM RTF: {RTF_llm:.2f}")
 
 	logger.info("============== Inference Finished ==============")
 

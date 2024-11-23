@@ -2,17 +2,16 @@
 export CUDA_VISIBLE_DEVICES=0
 export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=1
-export LD_LIBRARY_PATH=/data/yanruiqi/anaconda3/envs/omni/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/home/v-wenxichen/anaconda3/envs/slam/lib:$LD_LIBRARY_PATH
 export PYDEVD_WARN_SLOW_RESOLVE_TIMEOUT=2
 export CUDA_LAUNCH_BLOCKING=1
-export HF_ENDPOINT="https://hf-mirror.com"
 
 
 code_dir=examples/s2s
 
 whisper_size=small  # tiny base small medium large-v3
-speech_encoder_path="/data/model_weights/whisper/small.pt"   # different whisper size
-llm_path="/data/model_weights/Qwen2-0.5B"
+speech_encoder_path="/valleblob/v-wenxichen/models/whisper/${whisper_size}.pt"   # different whisper size
+llm_path="Qwen/Qwen2-0.5B"
 codec_decoder_path="hubertsiuzdak/snac_24khz"
 
 encoder_dim=768  # 384 512 768 896 1024 1280 
@@ -20,9 +19,9 @@ mel_size=80      # 80 128 (128 for whisper-large only)
 
 tts_adapter=false
 task_type=s2s
-split_size=0.1
+split_size=0.00001
 
-ckpt_path=/data/yanruiqi/exp/s2s/s2s_train_v1_gpu4_btz4_lr5e-4_fp16_epochs10_whisper-small/s2s_epoch_4_step_12748
+ckpt_path=/valleblob/v-wenxichen/exp/s2s/s2s_train_v2_gpu4_btz4_lr5e-4_fp16_epochs10/s2s_train_v2_gpu4_btz4_lr5e-4_fp16_epochs10-s2s_epoch_4_step_22946
 split=test
 
 # jsonl dataset
@@ -31,14 +30,13 @@ split=test
 
 # huggingface dataset
 manifest_format=datasets
-val_data_path="hlt-lab/voicebench"
-val_data_name="alpacaeval"
+val_data_path="gpt-omni/VoiceAssistant-400K"
 load_from_cache_file=true
 dataset_sample_seed=777
 
 # decode config
 text_repetition_penalty=1.0
-audio_repetition_penalty=1.0  
+audio_repetition_penalty=1.0        # default 1.0, set to 1.2 for reduce silence
 max_new_tokens=500
 do_sample=false
 top_p=0.9
@@ -47,7 +45,7 @@ temperature=1.0
 decode_text_only=false
 upsampling_factor=1
 
-output_text_only=true
+output_text_only=false
 
 inference_online=false
 
@@ -60,10 +58,8 @@ if [ "$decode_text_only" = true ] ; then
     decode_log=$decode_log"_text_only"
 fi
 
-
-# -m debugpy --listen 5678 --wait-for-client \
-python \
-$code_dir/inference_s2s.py \
+# -m debugpy --listen 5678 --wait-for-client
+python $code_dir/inference_s2s.py \
         --config-path "conf" \
         --config-name "prompt.yaml" \
         hydra.run.dir=$ckpt_path \
@@ -110,7 +106,6 @@ $code_dir/inference_s2s.py \
         ++decode_log=$decode_log \
         ++ckpt_path=$ckpt_path/model.pt \
         ++output_text_only=$output_text_only \
-        ++inference_online=$inference_online \
-        ++log_config.log_file="/data/yanruiqi/exp/s2s/debug/inference.log"
+        ++inference_online=$inference_online
 
 # bash /home/v-wenxichen/SLAM-LLM/examples/s2s/scripts/inference_s2s.sh

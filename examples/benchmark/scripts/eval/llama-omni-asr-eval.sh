@@ -12,8 +12,11 @@ ckpt_dir=/data/ruiqi.yan/omni_models/LLaMA-Omni-test
 
 # jsonl dataset
 manifest_format=jsonl
-val_data_name="sd-qa"     # alpacaeval，commoneval，sd-qa
-val_data_path=/data/ruiqi.yan/data/voicebench_raw/${val_data_name}/test.jsonl
+# alpacaeval_test, commoneval_test, gaokao_test, gsm8k_test, mlc_test, repeat_test,
+# storal_test, summary_test, truthful_test, wildchat_test
+val_data_name="gaokao_test"
+val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
+data_number=303         # 199, 200, 303 for alpacaeval，commoneval，gaokao
 
 # inference output dir
 decode_log=/data/ruiqi.yan/omni_models/LLaMA-Omni-test/${val_data_name}
@@ -30,20 +33,19 @@ cd $ckpt_dir
 source /home/visitor/miniconda3/etc/profile.d/conda.sh
 conda activate yrq-llama-omni          # put your environment name here
 # -m debugpy --listen 5678 --wait-for-client
-# python $code_dir/LLaMA-Omni-test/inference_for_eval.py \
-#         --dataset $val_data_path \
-#         --results-path $decode_log \
-#         --s2s \
-#         --dur-prediction \
-#         --model-path $ckpt_dir/models/Llama-3.1-8B-Omni \
-#         --vocoder $ckpt_dir/vocoder/g_00500000 \
-#         --vocoder-cfg $ckpt_dir/vocoder/config.json
+python $code_dir/LLaMA-Omni-test/inference_for_eval.py \
+        --dataset $val_data_path \
+        --results-path $decode_log \
+        --s2s \
+        --dur-prediction \
+        --model-path $ckpt_dir/models/Llama-3.1-8B-Omni \
+        --vocoder $ckpt_dir/vocoder/g_00500000 \
+        --vocoder-cfg $ckpt_dir/vocoder/config.json
 
 
 source /home/visitor/miniconda3/etc/profile.d/conda.sh
 conda activate yrq-omni          # put your environment name here
 output_dir=$decode_log/eval_with_asr/${val_data_name}
-data_number=553         # 199, 200, 553 for alpacaeval，commoneval，sd-qa
 
 python $code_dir/asr_for_eval.py \
         --input_dir $decode_log/audio \
@@ -51,26 +53,16 @@ python $code_dir/asr_for_eval.py \
         --output_dir $decode_log \
         --number $data_number
 
-if [ "$val_data_name" = "sd-qa" ]; then
-    evaluator="qa"
-    python $code_dir/VoiceBench/api_judge.py \
+# eval mode
+# open: alpacaeval_test, commoneval_test, wildchat_test
+# semi-open: storal_test, summary_test, truthful_test
+# qa: gaokao_test, gsm8k_test, mlc_test, repeat_test
+mode="qa"    # open, semi-open, qa, contrast
+
+python $code_dir/mark.py \
+        --mode $mode \
         --question $decode_log/question_text \
         --answer $decode_log/asr_text \
         --output_dir $output_dir \
         --dataset $val_data_name \
         --reference $decode_log/gt_text
-fi
-
-if [ "$val_data_name" != "sd-qa" ]; then
-    evaluator="open"
-    python $code_dir/VoiceBench/api_judge.py \
-        --question $decode_log/question_text \
-        --answer $decode_log/asr_text \
-        --output_dir $output_dir \
-        --dataset $val_data_name
-fi
-
-python $code_dir/VoiceBench/evaluate.py \
-        --src_file $output_dir/result.jsonl \
-        --evaluator $evaluator \
-        --dataset $val_data_name

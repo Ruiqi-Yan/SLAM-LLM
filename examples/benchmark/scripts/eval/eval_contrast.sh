@@ -23,7 +23,7 @@ output_dir=$decode_log/eval/${val_data_name}
 # eval mode
 mode="contrast"    # open, qa, contrast
 
-python $code_dir/gpt_mark.py \
+python $code_dir/mark.py \
         --mode $mode \
         --question $decode_log/question_text \
         --answer $decode_log/pred_text \

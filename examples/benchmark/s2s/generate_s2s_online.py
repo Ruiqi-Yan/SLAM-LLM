@@ -4,7 +4,7 @@ import logging
 import os
 import soundfile as sf
 from slam_llm.utils.model_utils import get_custom_model_factory
-from utils.snac_utils import reconscruct_snac, reconstruct_tensors, layershift, get_snac_answer_token
+from utils.snac_utils import reconscruct_snac, reconstruct_tensors, layershift, get_snac_answer_token, simple_shift
 from utils.codec_utils import audio_decode_cosyvoice
 import hydra
 from omegaconf import DictConfig, ListConfig, OmegaConf
@@ -45,22 +45,22 @@ def extract_audio_feature(audio_path, mel_size):
 	return audio_res, audio_length
 
 
-def get_input_ids(length, special_token_a, special_token_t, vocab_config):
+def get_input_ids(length, special_token_a, special_token_t, vocab_config, layer_shift=layershift):
 	input_ids = []
 	for i in range(vocab_config.code_layer):
 		input_ids_item = []
-		input_ids_item.append(layershift(vocab_config.input_a, i))
-		input_ids_item += [layershift(vocab_config.pad_a, i)] * length
-		input_ids_item += [(layershift(vocab_config.eoa, i)), layershift(special_token_a, i)]
+		input_ids_item.append(layer_shift(vocab_config.input_a, i))
+		input_ids_item += [layer_shift(vocab_config.pad_a, i)] * length
+		input_ids_item += [(layer_shift(vocab_config.eoa, i)), layer_shift(special_token_a, i)]
 		input_ids.append(torch.tensor(input_ids_item).unsqueeze(0))
 	input_id_T = torch.tensor([vocab_config.input_t] + [vocab_config.pad_t] * length + [vocab_config.eot, special_token_t])
 	input_ids.append(input_id_T.unsqueeze(0))
 	return input_ids
 
-def get_padded_input(text_input_idx, text_index_length, code_layer, _pad_a):
+def get_padded_input(text_input_idx, text_index_length, code_layer, _pad_a, layer_shift=layershift):
 	padded_input = []
 	for i in range(code_layer):
-		padded_input_item = [layershift(_pad_a, i)] * text_index_length
+		padded_input_item = [layer_shift(_pad_a, i)] * text_index_length
 		padded_input.append(torch.tensor(padded_input_item).unsqueeze(0))
 	
 	final_layer_input = torch.tensor(text_input_idx)
@@ -68,9 +68,10 @@ def get_padded_input(text_input_idx, text_index_length, code_layer, _pad_a):
 	return padded_input
 
 
-def generate_from_wav(wav_path, model, codec_decoder, dataset_config, decode_config, logger, device, model_config, tone_dir, audio_prompt_path=None, output_text_only=False):
+def generate_from_wav(wav_path, model, codec_decoder, dataset_config, decode_config, logger, device, model_config, tone_dir, audio_prompt_path=None, output_text_only=False, layer_shift=layershift):
 	mel_size = dataset_config.mel_size
 	prompt = dataset_config.prompt
+	# prompt_template = "<SYSTEM>: {}\n {}\n "
 	prompt_template = "USER: {}\n ASSISTANT: "
 	vocab_config = dataset_config.vocab_config
 	special_token_a = vocab_config.answer_a
@@ -84,13 +85,14 @@ def generate_from_wav(wav_path, model, codec_decoder, dataset_config, decode_con
 
 	audio_mel, audio_length = extract_audio_feature(wav_path, mel_size)
 
+	# prompt = prompt_template.format(prompt, history)
 	prompt = prompt_template.format(prompt)
 	prompt_ids = model.tokenizer.encode(prompt)
 	prompt_ids = [_input_t] + prompt_ids + [_eot]
 	prompt_length = len(prompt_ids)
-	prompt_ids = get_padded_input(prompt_ids, prompt_length, code_layer, vocab_config.pad_a)
+	prompt_ids = get_padded_input(prompt_ids, prompt_length, code_layer, vocab_config.pad_a, layer_shift)
 
-	example_ids = get_input_ids(audio_length, special_token_a, special_token_t, vocab_config)
+	example_ids = get_input_ids(audio_length, special_token_a, special_token_t, vocab_config, layer_shift)
 	example_ids = [torch.cat((prompt_ids[i], example_ids[i]), dim = 1) for i in range(code_layer + 1)]
 
 	input_length = audio_length
@@ -145,8 +147,9 @@ def generate_from_wav(wav_path, model, codec_decoder, dataset_config, decode_con
 	return audio_hat, output_text
 
 
-def generate_from_text(text_input, model, codec_decoder, dataset_config, decode_config, logger, device, model_config, tone_dir, audio_prompt_path=None, output_text_only=False):
+def generate_from_text(text_input, model, codec_decoder, dataset_config, decode_config, logger, device, model_config, tone_dir, audio_prompt_path=None, output_text_only=False, layer_shift=layershift):
 	prompt = dataset_config.prompt
+	# prompt_template = "<SYSTEM>: {}\n {}\n "
 	prompt_template = "USER: {}\n ASSISTANT: "
 	vocab_config = dataset_config.vocab_config
 	special_token_a = vocab_config.answer_a
@@ -158,16 +161,17 @@ def generate_from_text(text_input, model, codec_decoder, dataset_config, decode_
 	code_type = model_config.code_type
 	num_latency_tokens = dataset_config.num_latency_tokens
 
+	# prompt = prompt_template.format(prompt, history)
 	prompt = prompt_template.format(prompt)
 	prompt_ids = model.tokenizer.encode(prompt)
 	prompt_ids = [_input_t] + prompt_ids + [_eot]
 	prompt_length = len(prompt_ids)
-	prompt_ids = get_padded_input(prompt_ids, prompt_length, code_layer, vocab_config.pad_a)
+	prompt_ids = get_padded_input(prompt_ids, prompt_length, code_layer, vocab_config.pad_a, layer_shift)
 
 	text_input_ids = model.tokenizer.encode(text_input)
 	text_input_length = len(text_input_ids)
 	text_input_ids = torch.tensor(text_input_ids, dtype=torch.int64)
-	example_ids = get_input_ids(text_input_length, special_token_a, special_token_t, vocab_config)
+	example_ids = get_input_ids(text_input_length, special_token_a, special_token_t, vocab_config, layer_shift)
 	text_layer = example_ids[code_layer]
 	text_layer = torch.cat((text_layer[:,:1], text_input_ids.unsqueeze(0), text_layer[:,-2:]), dim=1)
 	example_ids[code_layer] = text_layer
@@ -280,6 +284,7 @@ def main(kwargs: DictConfig):
 	task_type = decode_config.task_type
 	code_layer = model_config.vocab_config.code_layer
 	code_type = model_config.code_type
+	do_layershift = dataset_config.do_layershift
 
 	output_text_only = kwargs.get('output_text_only', False)
 	speech_sample_rate = kwargs.get('speech_sample_rate', 24000)
@@ -296,6 +301,12 @@ def main(kwargs: DictConfig):
 
 	if not os.path.exists(tone_audio_dir) and not (output_text_only or decode_config.decode_text_only):
 		os.makedirs(tone_audio_dir)
+
+	layer_shift = None
+	if do_layershift:
+		layer_shift = layershift
+	else:
+		layer_shift = simple_shift
 
 	task_type = decode_config.task_type
 	logger.info("decode_config: {}".format(decode_config))
@@ -325,7 +336,7 @@ def main(kwargs: DictConfig):
 			if text_input.lower() == 'q':
 				break
 
-			audio_hat, output_text = generate_from_text(text_input, model, codec_decoder, dataset_config, decode_config, logger, device, model_config, tone_dir, audio_prompt_path, output_text_only)
+			audio_hat, output_text = generate_from_text(text_input, model, codec_decoder, dataset_config, decode_config, logger, device, model_config, tone_dir, audio_prompt_path, output_text_only, layer_shift)
 			logger.info(f"Generated Text: {output_text}")
 
 			if tone_audio_dir is not None:
@@ -346,8 +357,8 @@ def main(kwargs: DictConfig):
 				logger.warning(f"File {wav_path} does not exist. Please try again.")
 				continue
 
-			output_wav, output_text = generate_from_wav(wav_path, model, codec_decoder, dataset_config, decode_config, logger, device, model_config, tone_dir, audio_prompt_path, output_text_only)
-			logger.info(f"Generated Text: {output_text}")	
+			output_wav, output_text = generate_from_wav(wav_path, model, codec_decoder, dataset_config, decode_config, logger, device, model_config, tone_dir, audio_prompt_path, output_text_only, layer_shift)
+			logger.info(f"Generated Text: {output_text}")
 
 			if output_wav is None:
 				logger.warning(f"Generated Audio is None. Please try again.")

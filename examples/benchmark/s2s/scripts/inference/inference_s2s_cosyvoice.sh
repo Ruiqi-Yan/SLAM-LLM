@@ -2,7 +2,7 @@
 export CUDA_VISIBLE_DEVICES=0
 export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=1
-export LD_LIBRARY_PATH=/data/yanruiqi/anaconda3/envs/omni/lib:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=/home/v-wenxichen/anaconda3/envs/slam/lib:$LD_LIBRARY_PATH
 export PYDEVD_WARN_SLOW_RESOLVE_TIMEOUT=2
 export CUDA_LAUNCH_BLOCKING=1
 
@@ -10,8 +10,8 @@ export CUDA_LAUNCH_BLOCKING=1
 code_dir=examples/s2s
 
 whisper_size=small  # tiny base small medium large-v3
-speech_encoder_path="/data/model_weights/whisper/${whisper_size}.pt"   # different whisper size
-llm_path="/data/model_weights/Qwen2-0.5B"
+speech_encoder_path="/valleblob/v-wenxichen/models/whisper/${whisper_size}.pt"   # different whisper size
+llm_path="Qwen/Qwen2-0.5B"
 codec_decoder_path="/valleblob/v-wenxichen/models/CosyVoice/CosyVoice-300M-SFT" # replace this with your own CosyVoice model path
 
 encoder_dim=768  # 384 512 768 896 1024 1280 
@@ -23,16 +23,17 @@ task_type=s2s
 split_size=0.002
 
 # vocabulary settings
-code_layer=1             # 1 single semantic code layer   2 3 4 5 6 7 8 group semantic code layers 
-total_vocabsize=156160   # 152000 + 4160 Sry: Here is not elegant to set the total_vocabsize manually, I may fix it later :)
+code_layer=1            # 1 single semantic code layer   2 3 4 5 6 7 8 group semantic code layers 
+total_audio_vocabsize=4160
+total_vocabsize=156160  # 152000 + 4160 Sry: Here is not elegant to set the total_vocabsize manually, I may fix it later :)
 
 # code settings
-code_type=CosyVoice      # CosyVoice or SNAC
+code_type=CosyVoice     # CosyVoice or SNAC
 codec_decoder_type=CosyVoice
-num_latency_tokens=10     # number of latency tokens (same as the number in training)
+num_latency_tokens=5    # number of latency tokens (same as the number in training)
 do_layershift=false      # if false, tokens in each layers use the same codebook, otherwise, use different codebooks
 
-ckpt_path=/data/yanruiqi/SLAM-LLM/examples/benchmark/gpu4-btz3-lr5e-4-fp16-epochs10-whisper_small-single-latency10
+ckpt_path=/valleblob/v-wenxichen/exp/s2s/s2s_train_v3-gpu4-btz3-lr5e-4-fp16-epochs10-whisper_small-single-latency5/gpu4-btz3-lr5e-4-fp16-epochs10-whisper_small-single-latency5-s2s_epoch_3_step_8144
 split=test
 
 # jsonl dataset
@@ -41,17 +42,17 @@ split=test
 
 # huggingface dataset
 manifest_format=datasets
-val_data_path="hlt-lab/voicebench"
-load_from_cache_file=true
+val_data_path="/valleblob/v-wenxichen/data/s2s/VoiceAssistant-400K-v1/test"
+load_from_cache_file=false
 dataset_sample_seed=777
 
 # decode config
-text_repetition_penalty=1.0
-audio_repetition_penalty=1.0        # default 1.0, set to 1.2 for reduce silence
+text_repetition_penalty=1.2
+audio_repetition_penalty=1.2        # default 1.0, set to 1.2 for reduce silence
 max_new_tokens=3000                 # 500 for SNAC, 3000 for CosyVoice-single
 do_sample=false
-top_p=0.9
-top_k=50
+top_p=1.0
+top_k=0
 temperature=1.0
 decode_text_only=false
 upsampling_factor=1
@@ -59,7 +60,7 @@ upsampling_factor=1
 output_text_only=false
 speech_sample_rate=22050    # 22050 for CosyVoice, 24000 for SNAC
 inference_online=false
-audio_prompt_path=/data/yanruiqi/SLAM-LLM/examples/s2s/prompt/prompt_6.wav      # replace this with your own audio prompt path or our provided audio prompt path
+audio_prompt_path=/home/v-wenxichen/SLAM-LLM/examples/s2s/prompt/prompt_6.wav      # replace this with your own audio prompt path or our provided audio prompt path
 
 decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_greedy
 if [ "$do_sample" = true ] ; then
@@ -87,6 +88,7 @@ python $code_dir/inference_s2s.py \
         ++model_config.codec_decode=true \
         ++model_config.tts_adapter=$tts_adapter \
         ++model_config.vocab_config.code_layer=$code_layer \
+        ++model_config.vocab_config.total_audio_vocabsize=$total_audio_vocabsize \
         ++model_config.vocab_config.total_vocabsize=$total_vocabsize \
         ++model_config.code_type=$code_type \
         ++model_config.codec_decoder_type=$codec_decoder_type \
@@ -102,6 +104,7 @@ python $code_dir/inference_s2s.py \
         ++dataset_config.task_type=$task_type \
         ++dataset_config.seed=$dataset_sample_seed \
         ++dataset_config.vocab_config.code_layer=$code_layer \
+        ++dataset_config.vocab_config.total_audio_vocabsize=$total_audio_vocabsize \
         ++dataset_config.vocab_config.total_vocabsize=$total_vocabsize \
         ++dataset_config.code_type=$code_type \
         ++dataset_config.num_latency_tokens=$num_latency_tokens \
@@ -109,6 +112,7 @@ python $code_dir/inference_s2s.py \
         ++train_config.model_name=s2s \
         ++train_config.freeze_encoder=true \
         ++train_config.freeze_llm=true \
+        ++train_config.freeze_encoder_projector=true \
         ++train_config.batching_strategy=custom \
         ++train_config.num_epochs=1 \
         ++train_config.val_batch_size=1 \

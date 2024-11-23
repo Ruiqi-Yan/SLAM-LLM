@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 import os
 from tqdm import tqdm
 import logging
+import jsonlines
 
 def set_whisper(model_dir):
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -46,15 +47,15 @@ def main():
 
     # ASR
     logging.info(f"<========ASR starts========>")
-    with open(os.path.join(args.output_dir, "asr_text"), 'w') as f:
+    with jsonlines.open(os.path.join(args.output_dir, "asr_text"), mode='w') as f:
         for i in tqdm(range(args.number)):
             audio_file = os.path.join(args.input_dir, (str(i).zfill(4) + ".wav"))
             if os.path.exists(audio_file):
                 result = pipe([audio_file], batch_size=1)
-                f.write(str(i).zfill(4) + '\t' + result[0]['text'] + '\n')
+                f.write({str(i).zfill(4): result[0]['text'].strip()})
             else: 
                 result = " "
-                f.write(str(i).zfill(4) + '\t' + result + '\n')
+                f.write({str(i).zfill(4): result})
             
 if __name__ == '__main__':
     main()

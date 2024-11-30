@@ -84,6 +84,9 @@ def A1_A2(fabric, audio_feature, input_ids, leng, model, text_tokenizer, step, s
         os.makedirs(out_dir)
         
     audio = reconstruct_tensors(audiolist)
+    # fix some bugs
+    for item in audio:
+        item[item > 4095] = 4095
     with torch.inference_mode():
         audio_hat = snacmodel.decode(audio)
     sf.write(
@@ -148,7 +151,6 @@ def main():
     parser.add_argument('--dataset', type=str, required=True)
     parser.add_argument('--output_dir', type=str, required=True)
     parser.add_argument('--ckpt_dir', type=str, required=True)
-    parser.add_argument('--error_list', type=str, default='')
     parser.add_argument('--mode', default="A1A2")
     args = parser.parse_args()
 
@@ -171,7 +173,6 @@ def main():
     question_text = os.path.join(output_dir, "question_text")
     gt_text = os.path.join(output_dir, "gt_text")
     mode = args.mode
-    error_list = args.error_list.split(',')
 
     logging.info("<========loading model========>")
     fabric, model, text_tokenizer, snacmodel, whispermodel = load_from_checkpoint(device, args.ckpt_dir)
@@ -189,44 +190,26 @@ def main():
                 assert os.path.exists(input_path), f"audio file {input_path} not found"
                 mel, leng = load_audio(input_path)
                 audio_feature, input_ids = get_input_ids_whisper(mel, leng, whispermodel, device)
-                if str(step) in error_list:    # nothing to fix cuda error and continue but use this inelegant way
-                    logging.warning(f"Exception occurred, skip")
-                    text = ""
-                    pt.write({str(step).zfill(4): text})
-                    qt.write({str(step).zfill(4): input_text})
-                    if isinstance(target_text, list):
-                        gt.write({str(step).zfill(4): ' / '.join(target_text)})
-                    else: gt.write({str(step).zfill(4): target_text})
-                else:
-                    text = A1_A2(fabric, audio_feature, input_ids, leng, model, text_tokenizer, step, snacmodel, output_dir)
-                    logging.info(f"Input text: {input_text}")
-                    logging.info(f"Output text: {text}")
-                    logging.info(f"output audio saved to {output_audio_dir}/{step:04d}.wav")
-                    pt.write({str(step).zfill(4): text})
-                    qt.write({str(step).zfill(4): input_text})
-                    if isinstance(target_text, list):
-                        gt.write({str(step).zfill(4): ' / '.join(target_text)})
-                    else: gt.write({str(step).zfill(4): target_text})
+                text = A1_A2(fabric, audio_feature, input_ids, leng, model, text_tokenizer, step, snacmodel, output_dir)
+                logging.info(f"Input text: {input_text}")
+                logging.info(f"Output text: {text}")
+                logging.info(f"output audio saved to {output_audio_dir}/{step:04d}.wav")
+                pt.write({str(step).zfill(4): text})
+                qt.write({str(step).zfill(4): input_text})
+                if isinstance(target_text, list):
+                    gt.write({str(step).zfill(4): ' / '.join(target_text)})
+                else: gt.write({str(step).zfill(4): target_text})
             elif mode == "T1A2":
                 input_ids = get_input_ids_TA(input_text, text_tokenizer)
-                if str(step) in error_list:    # nothing to fix cuda error and continue but use this inelegant way
-                    logging.warning(f"Exception occurred, skip")
-                    text_output = ""
-                    pt.write({str(step).zfill(4): text_output})
-                    qt.write({str(step).zfill(4): input_text})
-                    if isinstance(target_text, list):
-                        gt.write({str(step).zfill(4): ' / '.join(target_text)})
-                    else: gt.write({str(step).zfill(4): target_text})
-                else:    
-                    text_output = T1_A2(fabric, input_ids, model, text_tokenizer, step, snacmodel, output_dir)
-                    logging.info(f"Input text: {input_text}")
-                    logging.info(f"Output text: {text_output}")
-                    logging.info(f"output audio saved to {output_audio_dir}/{step:04d}.wav")
-                    pt.write({str(step).zfill(4): text_output})
-                    qt.write({str(step).zfill(4): input_text})
-                    if isinstance(target_text, list):
-                        gt.write({str(step).zfill(4): ' / '.join(target_text)})
-                    else: gt.write({str(step).zfill(4): target_text})
+                text_output = T1_A2(fabric, input_ids, model, text_tokenizer, step, snacmodel, output_dir)
+                logging.info(f"Input text: {input_text}")
+                logging.info(f"Output text: {text_output}")
+                logging.info(f"output audio saved to {output_audio_dir}/{step:04d}.wav")
+                pt.write({str(step).zfill(4): text_output})
+                qt.write({str(step).zfill(4): input_text})
+                if isinstance(target_text, list):
+                    gt.write({str(step).zfill(4): ' / '.join(target_text)})
+                else: gt.write({str(step).zfill(4): target_text})
             else:
                 logging.warning("Invalid mode selected. Please choose either 'A1A2' or 'T1A2'.")
 

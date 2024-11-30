@@ -5,16 +5,20 @@ from argparse import ArgumentParser
 import logging
 import os
 import jsonlines
-import gpt_mark
-import eval_metrics
+import metrics.mark_gpt as mark_gpt
+import metrics.mark_wer as mark_wer
+import metrics.mark_utmos as mark_utmos
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument('--mode', type=str, required=True, choices=["qa", "open", "semi-open", "contrast", "wer"])
+    parser.add_argument('--mode', type=str, required=True, choices=["qa", "open", "semi-open", "wer", "contrast"])
     parser.add_argument('--question', type=str, required=True)
     parser.add_argument('--answer', type=str, required=True)
+    parser.add_argument('--answer_text', type=str, required=False)
     parser.add_argument('--output_dir', type=str, required=True)
     parser.add_argument('--dataset', type=str, required=True)
+    parser.add_argument('--language', type=str, default="en")
+    parser.add_argument('--audio_dir', type=str, required=False)
     parser.add_argument('--reference', type=str, required=False)
     parser.add_argument('--answer_contrast', type=str, required=False)
     args = parser.parse_args()
@@ -32,9 +36,16 @@ def main():
 
     # evaluate data
     logging.info("<========start to evaluate data========>")
+    # eval for output text
     if args.mode == 'wer':
-        eval_metrics.eval_wer(args)
-    else: gpt_mark.eval(args)
+        mark_wer.eval_repeat(args)
+    else: 
+        mark_gpt.eval(args)
+    # eval for output audio
+    if args.audio_dir is not None:
+        mark_utmos.eval(args)
+    if args.answer_text is not None:
+        mark_wer.eval_wav(args)
 
 if __name__ == '__main__':
     main()

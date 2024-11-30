@@ -80,9 +80,7 @@ def audio_decode_cosyvoice(audio_tokens, model_config, codec_decoder, tone_dir, 
     eoa = model_config.vocab_config.eoa
     pad_a = model_config.vocab_config.pad_a
 
-    # Truncate audio tokens at the EOA token
-    if not eoa in audio_tokens:
-        return -1
+    # Truncate audio tokens at the EOA token 
     end_index = torch.nonzero(audio_tokens[0] == eoa)[0]
     audio_tokens = audio_tokens[..., :end_index]
 

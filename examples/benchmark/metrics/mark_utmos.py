@@ -26,5 +26,6 @@ def eval(args):
             utmos_result += score.item()
             f.write({str(wave_name): score.item()})
 
+        f.write({"final_UTMOS": utmos_result / len(audio_files)})
         logging.info(f"UTMOS: {utmos_result / len(audio_files)}")
         logging.info(f"Results have been saved to {output_file}")

@@ -1,5 +1,5 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=7
+export CUDA_VISIBLE_DEVICES=4
 export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=1
 export LD_LIBRARY_PATH=/home/visitor/miniconda3/envs/yrq-omni/lib:$LD_LIBRARY_PATH
@@ -22,9 +22,9 @@ manifest_format=jsonl
 # gsm8k_test, 582
 # mlc_test, 177
 # repeat_test, 252
-val_data_name="alpacaeval_test"
+val_data_name="repeat_test"
 val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
-data_number=199
+data_number=252
 
 # inference output dir
 decode_log=/data/ruiqi.yan/omni_models/mini-omni-test/${val_data_name}
@@ -49,7 +49,7 @@ python $code_dir/asr_for_eval.py \
 # semi-open: storal_test, summary_test, truthful_test
 # qa: gaokao_test, gsm8k_test, mlc_test
 # wer: repeat_test
-mode="open"    # open, semi-open, qa, contrast
+mode="wer"    # open, semi-open, qa, wer, contrast
 
 python $code_dir/mark.py \
         --mode $mode \
@@ -59,4 +59,4 @@ python $code_dir/mark.py \
         --output_dir $output_dir \
         --dataset $val_data_name \
         --audio_dir $decode_log/audio \
-        # --reference $decode_log/gt_text
+        --reference $decode_log/gt_text

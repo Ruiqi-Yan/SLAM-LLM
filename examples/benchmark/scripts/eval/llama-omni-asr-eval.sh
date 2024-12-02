@@ -1,5 +1,5 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=5
 export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=1
 export LD_LIBRARY_PATH=/home/visitor/miniconda3/envs/yrq-omni/lib:$LD_LIBRARY_PATH
@@ -12,21 +12,22 @@ ckpt_dir=/data/ruiqi.yan/omni_models/LLaMA-Omni-test
 
 # jsonl dataset
 manifest_format=jsonl
-# alpacaeval_test, commoneval_test, gaokao_test, gsm8k_test, mlc_test, repeat_test,
-# storal_test, summary_test, truthful_test, wildchat_test
-val_data_name="gaokao_test"
+# alpacaeval_test, 199
+# commoneval_test, 200
+# wildchat_test, 349
+# storal_test, 201
+# summary_test, 118
+# truthful_test, 470
+# gaokao_test, 303
+# gsm8k_test, 582
+# mlc_test, 177
+# repeat_test, 252
+val_data_name="repeat_test"
 val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
-data_number=303         # 199, 200, 303 for alpacaeval，commoneval，gaokao
+data_number=252
 
 # inference output dir
 decode_log=/data/ruiqi.yan/omni_models/LLaMA-Omni-test/${val_data_name}
-
-# huggingface dataset
-# manifest_format=datasets
-# val_data_path="/data/ruiqi.yan/data/voicebench"
-# val_data_name="alpacaeval"     # alpacaeval，commoneval，sd-qa
-# load_from_cache_file=true
-# dataset_sample_seed=888
 
 
 cd $ckpt_dir
@@ -56,13 +57,16 @@ python $code_dir/asr_for_eval.py \
 # eval mode
 # open: alpacaeval_test, commoneval_test, wildchat_test
 # semi-open: storal_test, summary_test, truthful_test
-# qa: gaokao_test, gsm8k_test, mlc_test, repeat_test
-mode="qa"    # open, semi-open, qa, contrast
+# qa: gaokao_test, gsm8k_test, mlc_test
+# wer: repeat_test
+mode="wer"    # open, semi-open, qa, wer, contrast
 
 python $code_dir/mark.py \
         --mode $mode \
         --question $decode_log/question_text \
         --answer $decode_log/asr_text \
+        --answer_text $decode_log/pred_text \
         --output_dir $output_dir \
         --dataset $val_data_name \
+        --audio_dir $decode_log/audio \
         --reference $decode_log/gt_text

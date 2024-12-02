@@ -95,6 +95,7 @@ def calculate_wer(item):
 def eval_repeat(args):
     output_file = os.path.join(args.output_dir, 'result_repeat_wer.jsonl')
     sum_wer = 0
+    ok_num = 0
     with open(args.question, 'r') as f:
         length = sum([1 for _ in f])
     with open(args.answer, 'r') as pt, open(args.reference, 'r') as gt, jsonlines.open(output_file, mode='w') as ot:
@@ -102,8 +103,10 @@ def eval_repeat(args):
             item = {"answer": answer[str(i).zfill(4)], "reference": reference[str(i).zfill(4)]}
             wer = calculate_wer(item)
             item["WER"] = wer
+            if wer <= 0.5:
+                ok_num += 1
+                sum_wer += item["WER"]
             ot.write(item)
-            sum_wer += item["WER"]
-        ot.write({"final_WER": sum_wer / length})
+        ot.write({"ok_rate": ok_num / length, "final_WER_for_ok_case": sum_wer / ok_num})
     # save results
     logging.info(f"saving result to {output_file}")

@@ -8,12 +8,14 @@ import jsonlines
 import logging
 
 class NaiveAssistant:
-    def __init__(self):
+    def __init__(self, whisper_path, qwen_path):
+        self.whisper_path = whisper_path
+        self.qwen_path = qwen_path
         self.asr = self.load_asr()
         self.llm = self.load_llm()
 
     def load_asr(self):
-        model_id = "openai/whisper-large-v3"
+        model_id = self.whisper_path
         model = AutoModelForSpeechSeq2Seq.from_pretrained(
             model_id, torch_dtype=torch.float16, low_cpu_mem_usage=True, use_safetensors=True, cache_dir='./cache'
         )
@@ -31,7 +33,7 @@ class NaiveAssistant:
 
     def load_llm(self):
         # model_id = "Qwen/Qwen2-0.5B"
-        model_id = "Qwen/Qwen2-0.5B-Instruct"
+        model_id = self.qwen_path
         pipe = transformers.pipeline(
             "text-generation",
             model=model_id,
@@ -64,6 +66,8 @@ def main():
     parser.add_argument('--dataset', type=str, required=True)
     parser.add_argument('--modality', type=str, required=True, choices=['audio', 'text'], help="Input modality: 'audio' or 'text'")
     parser.add_argument('--output_dir', type=str, required=True)
+    parser.add_argument('--whisper_path', type=str, required=True)
+    parser.add_argument('--qwen_path', type=str, required=True)
     args = parser.parse_args()
 
     # Set log
@@ -82,7 +86,7 @@ def main():
     gt_text = os.path.join(output_dir, "gt_text")
 
     logging.info("<========loading model========>")
-    assistant = NaiveAssistant()
+    assistant = NaiveAssistant(args.whisper_path, args.qwen_path)
 
     logging.info("<========inference starts========>")
     with open(args.dataset, 'r') as f, jsonlines.open(pred_text, mode='w') as pt, jsonlines.open(question_text, mode='w') as qt, jsonlines.open(gt_text, mode='w') as gt:
@@ -94,15 +98,15 @@ def main():
             else:
                 target_text = item['source_text']
             if args.modality == 'audio':
-                    audio = torchaudio.load(input_path)[0].squeeze().numpy()
-                    response = assistant.generate_audio(audio)
-                    logging.info(f"Input text: {input_text}")
-                    logging.info(f"Output text: {response}")
-                    pt.write({str(step).zfill(4): response})
-                    qt.write({str(step).zfill(4): input_text})
-                    if isinstance(target_text, list):
-                        gt.write({str(step).zfill(4): ' / '.join(target_text)})
-                    else: gt.write({str(step).zfill(4): target_text})
+                audio = torchaudio.load(input_path)[0].squeeze().numpy()
+                response = assistant.generate_audio(audio)
+                logging.info(f"Input text: {input_text}")
+                logging.info(f"Output text: {response}")
+                pt.write({str(step).zfill(4): response})
+                qt.write({str(step).zfill(4): input_text})
+                if isinstance(target_text, list):
+                    gt.write({str(step).zfill(4): ' / '.join(target_text)})
+                else: gt.write({str(step).zfill(4): target_text})
             else:
                 text = input_text.strip()
                 response = assistant.generate_text(text)

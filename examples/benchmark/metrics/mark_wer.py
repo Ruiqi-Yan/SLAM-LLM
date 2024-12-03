@@ -9,6 +9,7 @@ import string
 import multiprocessing as mp
 import numpy as np
 import torch.nn.functional as F
+from normalizers.english import EnglishTextNormalizer
 
 def run_asr_wer(lang, item):
     if lang not in ["zh", "en"]:
@@ -74,22 +75,10 @@ def eval_wav(args):
     logging.info(f"WER: {round(wer * 100, 3)}%")
     logging.info(f"saving result to {output_file}")
 
-def convert_numbers_to_words(text, p):
-    words = text[:-1].split()
-    result = []
-    
-    for word in words:
-        if word.isdigit():
-            result.append(p.number_to_words(word)) 
-        else:
-            result.append(word)
-    
-    return ' '.join(result) + text[-1]
-
 def calculate_wer(item):
-    p = inflect.engine()
-    text1 = convert_numbers_to_words(item['answer'].strip().lower(), p)
-    text2 = convert_numbers_to_words(item['reference'].strip().lower(), p)
+    english_normalizer = EnglishTextNormalizer()
+    text1 = english_normalizer(item['answer'].strip().lower())
+    text2 = english_normalizer(item['reference'].strip().lower())
     return jiwer.wer(text1, text2)
 
 def eval_repeat(args):

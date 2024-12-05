@@ -115,18 +115,22 @@ def get_prompt(mode, item):
         return prompt_contrast.replace("{question}", item["question"]).replace("{answer_1}", item["answer_1"]).replace("{answer_2}", item["answer_2"])
 
 def mark(prompt, client):
-    scores = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": "You are a helpful assistant."},
-                        {"role": "user", "content": prompt}],
-                    max_tokens=1024,
-                    frequency_penalty=0,
-                    presence_penalty=0,
-                    stop=None,
-                    temperature=0.5, top_p=0.95, n=3
-                    )    
-    return scores
+    try:
+        scores = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {"role": "system", "content": "You are a helpful assistant."},
+                            {"role": "user", "content": prompt}],
+                        max_tokens=1024,
+                        frequency_penalty=0,
+                        presence_penalty=0,
+                        stop=None,
+                        temperature=0.5, top_p=0.95, n=3
+                        )
+    except:
+        return [0, 0, 0]
+    else:
+        return [choice.message.content for choice in scores.choices]
 
 def eval(args):
     client = set_gpt()
@@ -141,7 +145,7 @@ def eval(args):
                 item = {"question": question[str(i).zfill(4)], "answer": answer[str(i).zfill(4)]}
                 prompt = get_prompt(args.mode, item)
                 scores = mark(prompt, client)
-                item["score"] = [choice.message.content for choice in scores.choices]
+                item["score"] = scores
                 ot.write(item)
                 sum_score += sum([int(i) for i in item["score"]]) / len(item["score"])
             ot.write({"final_score": sum_score * 20 / length})
@@ -158,7 +162,7 @@ def eval(args):
                 item = {"question": question[str(i).zfill(4)], "answer": answer[str(i).zfill(4)], "reference": reference[str(i).zfill(4)]}
                 prompt = get_prompt(args.mode, item)
                 scores = mark(prompt, client)
-                item["score"] = [choice.message.content for choice in scores.choices]
+                item["score"] = scores
                 ot.write(item)
                 sum_score += sum([int(i) for i in item["score"]]) / len(item["score"])
             ot.write({"final_score": sum_score * 20 / length})
@@ -175,7 +179,7 @@ def eval(args):
                 item = {"question": question[str(i).zfill(4)], "answer": answer[str(i).zfill(4)], "reference": reference[str(i).zfill(4)]}
                 prompt = get_prompt(args.mode, item)
                 scores = mark(prompt, client)
-                item["score"] = [choice.message.content for choice in scores.choices]
+                item["score"] = scores
                 ot.write(item)
                 sum_score += sum([(1 if i == "Yes" else 0) for i in item["score"]]) / len(item["score"])
             ot.write({"final_score": sum_score * 100 / length})
@@ -192,7 +196,7 @@ def eval(args):
                 item = {"question": question[str(i).zfill(4)], "answer_1": answer[str(i).zfill(4)], "answer_2": answer_contrast[str(i).zfill(4)]}
                 prompt = get_prompt(args.mode, item)
                 scores = mark(prompt, client)
-                item["score"] = [choice.message.content for choice in scores.choices]
+                item["score"] = scores
                 ot.write(item)
                 sum_score += sum([int(i) for i in item["score"]]) / len(item["score"])
             ot.write({"final_score": sum_score * 50 / length})

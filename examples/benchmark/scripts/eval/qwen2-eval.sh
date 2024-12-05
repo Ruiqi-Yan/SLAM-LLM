@@ -459,3 +459,5 @@ python $code_dir/mark.py \
         --output_dir $output_dir \
         --dataset $val_data_name \
         --reference $decode_log/gt_text
+
+python $code_dir/evaluate.py --eval_dir /data/ruiqi.yan/omni_models/qwen2-test --non_asr

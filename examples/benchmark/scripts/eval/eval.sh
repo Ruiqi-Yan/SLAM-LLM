@@ -31,7 +31,7 @@ codec_decoder_type=CosyVoice
 num_latency_tokens=5    # number of latency tokens (same as the number in training)
 do_layershift=false      # if false, tokens in each layers use the same codebook, otherwise, use different codebooks
 
-ckpt_path=/data/ruiqi.yan/omni_models/model_multi/ablation-UltraChat/Qwen2-0.5b-gpu16-btz1-lr5e-4-nofp16-epochs10-whisper_small-latency5-group3-UltraChat-from_pretrain-FFT-s2s_epoch_2_step_17364
+ckpt_path=/data/ruiqi.yan/omni_models/model/gpu16-btz3-lr5e-4-fp16-epochs10-whisper_small-latency5-group3-s2s_epoch_4_step_1179
 split=test
 
 # jsonl dataset
@@ -76,7 +76,7 @@ upsampling_factor=1
 output_text_only=false
 speech_sample_rate=22050    # 22050 for CosyVoice, 24000 for SNAC
 inference_online=false
-audio_prompt_path=/data/ruiqi.yan/SLAM-LLM/examples/s2s/prompt/en/prompt_6.wav       # replace this with your own audio prompt path or our provided audio prompt path
+audio_prompt_path=/data/ruiqi.yan/SLAM-LLM/examples/s2s/audio_prompt/en/prompt_6.wav      # replace this with your own audio prompt path or our provided audio prompt path
 audio_prompt=prompt_6
 
 decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_greedy_${val_data_name}
@@ -149,6 +149,7 @@ python $code_dir/s2s/inference_s2s.py \
         ++decode_config.decode_text_only=$decode_text_only \
         ++decode_config.upsampling_factor=$upsampling_factor \
         ++decode_config.do_layershift=$do_layershift \
+        ++decode_config.num_latency_tokens=$num_latency_tokens \
         ++decode_log=$decode_log \
         ++ckpt_path=$ckpt_path/model.pt \
         ++output_text_only=$output_text_only \
@@ -173,17 +174,17 @@ python $code_dir/asr_for_eval.py \
 # semi-open: storal_test, summary_test, truthful_test
 # qa: gaokao_test, gsm8k_test, mlc_test
 # wer: repeat_test
-mode="open"    # open, semi-open, qa, contrast
+mode="open"    # open, semi-open, qa, wer, contrast
 
 python $code_dir/mark.py \
         --mode $mode \
         --question $decode_log/question_text \
         --answer $decode_log/asr_text \
+        --answer_text $decode_log/pred_text \
         --output_dir $output_dir \
         --dataset $val_data_name \
-        # --reference $decode_log/gt_text   
-
-# ----------------------------------------------------------------------
+        --audio_dir $decode_log/pred_audio/$audio_prompt \
+        # --reference $decode_log/gt_text    
 
 # jsonl dataset
 manifest_format=jsonl
@@ -201,7 +202,35 @@ val_data_name="commoneval_test"
 val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=200
 
+# huggingface dataset
+# manifest_format=datasets
+# val_data_path="/data/ruiqi.yan/data/voicebench"
+# val_data_name="sd-qa"     # alpacaeval，commoneval，sd-qa
+load_from_cache_file=false
+dataset_sample_seed=888
+
+# model settings
+tts_adapter=false
+group_decode=true
+group_decode_adapter_type=linear
+
 # decode config
+text_repetition_penalty=1.2
+audio_repetition_penalty=1.2        # default 1.0, set to 1.2 for reduce silence
+max_new_tokens=3000                 # 500 for SNAC, 3000 for CosyVoice-single
+do_sample=false
+top_p=0.9
+top_k=50
+temperature=1.0
+decode_text_only=false
+upsampling_factor=1
+
+output_text_only=false
+speech_sample_rate=22050    # 22050 for CosyVoice, 24000 for SNAC
+inference_online=false
+audio_prompt_path=/data/ruiqi.yan/SLAM-LLM/examples/s2s/audio_prompt/en/prompt_6.wav      # replace this with your own audio prompt path or our provided audio prompt path
+audio_prompt=prompt_6
+
 decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_greedy_${val_data_name}
 if [ "$do_sample" = true ] ; then
     decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_sampling_topk${top_k}_topp${top_p}_temp${temperature}_${val_data_name}
@@ -272,6 +301,7 @@ python $code_dir/s2s/inference_s2s.py \
         ++decode_config.decode_text_only=$decode_text_only \
         ++decode_config.upsampling_factor=$upsampling_factor \
         ++decode_config.do_layershift=$do_layershift \
+        ++decode_config.num_latency_tokens=$num_latency_tokens \
         ++decode_log=$decode_log \
         ++ckpt_path=$ckpt_path/model.pt \
         ++output_text_only=$output_text_only \
@@ -296,17 +326,17 @@ python $code_dir/asr_for_eval.py \
 # semi-open: storal_test, summary_test, truthful_test
 # qa: gaokao_test, gsm8k_test, mlc_test
 # wer: repeat_test
-mode="open"    # open, semi-open, qa, contrast
+mode="open"    # open, semi-open, qa, wer, contrast
 
 python $code_dir/mark.py \
         --mode $mode \
         --question $decode_log/question_text \
         --answer $decode_log/asr_text \
+        --answer_text $decode_log/pred_text \
         --output_dir $output_dir \
         --dataset $val_data_name \
+        --audio_dir $decode_log/pred_audio/$audio_prompt \
         # --reference $decode_log/gt_text    
-
-# ----------------------------------------------------------------------
 
 # jsonl dataset
 manifest_format=jsonl
@@ -324,7 +354,35 @@ val_data_name="wildchat_test"
 val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=349
 
+# huggingface dataset
+# manifest_format=datasets
+# val_data_path="/data/ruiqi.yan/data/voicebench"
+# val_data_name="sd-qa"     # alpacaeval，commoneval，sd-qa
+load_from_cache_file=false
+dataset_sample_seed=888
+
+# model settings
+tts_adapter=false
+group_decode=true
+group_decode_adapter_type=linear
+
 # decode config
+text_repetition_penalty=1.2
+audio_repetition_penalty=1.2        # default 1.0, set to 1.2 for reduce silence
+max_new_tokens=3000                 # 500 for SNAC, 3000 for CosyVoice-single
+do_sample=false
+top_p=0.9
+top_k=50
+temperature=1.0
+decode_text_only=false
+upsampling_factor=1
+
+output_text_only=false
+speech_sample_rate=22050    # 22050 for CosyVoice, 24000 for SNAC
+inference_online=false
+audio_prompt_path=/data/ruiqi.yan/SLAM-LLM/examples/s2s/audio_prompt/en/prompt_6.wav      # replace this with your own audio prompt path or our provided audio prompt path
+audio_prompt=prompt_6
+
 decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_greedy_${val_data_name}
 if [ "$do_sample" = true ] ; then
     decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_sampling_topk${top_k}_topp${top_p}_temp${temperature}_${val_data_name}
@@ -395,6 +453,7 @@ python $code_dir/s2s/inference_s2s.py \
         ++decode_config.decode_text_only=$decode_text_only \
         ++decode_config.upsampling_factor=$upsampling_factor \
         ++decode_config.do_layershift=$do_layershift \
+        ++decode_config.num_latency_tokens=$num_latency_tokens \
         ++decode_log=$decode_log \
         ++ckpt_path=$ckpt_path/model.pt \
         ++output_text_only=$output_text_only \
@@ -419,17 +478,17 @@ python $code_dir/asr_for_eval.py \
 # semi-open: storal_test, summary_test, truthful_test
 # qa: gaokao_test, gsm8k_test, mlc_test
 # wer: repeat_test
-mode="open"    # open, semi-open, qa, contrast
+mode="open"    # open, semi-open, qa, wer, contrast
 
 python $code_dir/mark.py \
         --mode $mode \
         --question $decode_log/question_text \
         --answer $decode_log/asr_text \
+        --answer_text $decode_log/pred_text \
         --output_dir $output_dir \
         --dataset $val_data_name \
-        # --reference $decode_log/gt_text  
-
-# ----------------------------------------------------------------------
+        --audio_dir $decode_log/pred_audio/$audio_prompt \
+        # --reference $decode_log/gt_text    
 
 # jsonl dataset
 manifest_format=jsonl
@@ -447,7 +506,35 @@ val_data_name="storal_test"
 val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=201
 
+# huggingface dataset
+# manifest_format=datasets
+# val_data_path="/data/ruiqi.yan/data/voicebench"
+# val_data_name="sd-qa"     # alpacaeval，commoneval，sd-qa
+load_from_cache_file=false
+dataset_sample_seed=888
+
+# model settings
+tts_adapter=false
+group_decode=true
+group_decode_adapter_type=linear
+
 # decode config
+text_repetition_penalty=1.2
+audio_repetition_penalty=1.2        # default 1.0, set to 1.2 for reduce silence
+max_new_tokens=3000                 # 500 for SNAC, 3000 for CosyVoice-single
+do_sample=false
+top_p=0.9
+top_k=50
+temperature=1.0
+decode_text_only=false
+upsampling_factor=1
+
+output_text_only=false
+speech_sample_rate=22050    # 22050 for CosyVoice, 24000 for SNAC
+inference_online=false
+audio_prompt_path=/data/ruiqi.yan/SLAM-LLM/examples/s2s/audio_prompt/en/prompt_6.wav      # replace this with your own audio prompt path or our provided audio prompt path
+audio_prompt=prompt_6
+
 decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_greedy_${val_data_name}
 if [ "$do_sample" = true ] ; then
     decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_sampling_topk${top_k}_topp${top_p}_temp${temperature}_${val_data_name}
@@ -518,6 +605,7 @@ python $code_dir/s2s/inference_s2s.py \
         ++decode_config.decode_text_only=$decode_text_only \
         ++decode_config.upsampling_factor=$upsampling_factor \
         ++decode_config.do_layershift=$do_layershift \
+        ++decode_config.num_latency_tokens=$num_latency_tokens \
         ++decode_log=$decode_log \
         ++ckpt_path=$ckpt_path/model.pt \
         ++output_text_only=$output_text_only \
@@ -542,17 +630,17 @@ python $code_dir/asr_for_eval.py \
 # semi-open: storal_test, summary_test, truthful_test
 # qa: gaokao_test, gsm8k_test, mlc_test
 # wer: repeat_test
-mode="semi-open"    # open, semi-open, qa, contrast
+mode="semi-open"    # open, semi-open, qa, wer, contrast
 
 python $code_dir/mark.py \
         --mode $mode \
         --question $decode_log/question_text \
         --answer $decode_log/asr_text \
+        --answer_text $decode_log/pred_text \
         --output_dir $output_dir \
         --dataset $val_data_name \
-        --reference $decode_log/gt_text  
-
-# ----------------------------------------------------------------------
+        --audio_dir $decode_log/pred_audio/$audio_prompt \
+        --reference $decode_log/gt_text    
 
 # jsonl dataset
 manifest_format=jsonl
@@ -570,7 +658,35 @@ val_data_name="summary_test"
 val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=118
 
+# huggingface dataset
+# manifest_format=datasets
+# val_data_path="/data/ruiqi.yan/data/voicebench"
+# val_data_name="sd-qa"     # alpacaeval，commoneval，sd-qa
+load_from_cache_file=false
+dataset_sample_seed=888
+
+# model settings
+tts_adapter=false
+group_decode=true
+group_decode_adapter_type=linear
+
 # decode config
+text_repetition_penalty=1.2
+audio_repetition_penalty=1.2        # default 1.0, set to 1.2 for reduce silence
+max_new_tokens=3000                 # 500 for SNAC, 3000 for CosyVoice-single
+do_sample=false
+top_p=0.9
+top_k=50
+temperature=1.0
+decode_text_only=false
+upsampling_factor=1
+
+output_text_only=false
+speech_sample_rate=22050    # 22050 for CosyVoice, 24000 for SNAC
+inference_online=false
+audio_prompt_path=/data/ruiqi.yan/SLAM-LLM/examples/s2s/audio_prompt/en/prompt_6.wav      # replace this with your own audio prompt path or our provided audio prompt path
+audio_prompt=prompt_6
+
 decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_greedy_${val_data_name}
 if [ "$do_sample" = true ] ; then
     decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_sampling_topk${top_k}_topp${top_p}_temp${temperature}_${val_data_name}
@@ -641,6 +757,7 @@ python $code_dir/s2s/inference_s2s.py \
         ++decode_config.decode_text_only=$decode_text_only \
         ++decode_config.upsampling_factor=$upsampling_factor \
         ++decode_config.do_layershift=$do_layershift \
+        ++decode_config.num_latency_tokens=$num_latency_tokens \
         ++decode_log=$decode_log \
         ++ckpt_path=$ckpt_path/model.pt \
         ++output_text_only=$output_text_only \
@@ -665,17 +782,17 @@ python $code_dir/asr_for_eval.py \
 # semi-open: storal_test, summary_test, truthful_test
 # qa: gaokao_test, gsm8k_test, mlc_test
 # wer: repeat_test
-mode="semi-open"    # open, semi-open, qa, contrast
+mode="semi-open"    # open, semi-open, qa, wer, contrast
 
 python $code_dir/mark.py \
         --mode $mode \
         --question $decode_log/question_text \
         --answer $decode_log/asr_text \
+        --answer_text $decode_log/pred_text \
         --output_dir $output_dir \
         --dataset $val_data_name \
-        --reference $decode_log/gt_text  
-
-# ----------------------------------------------------------------------
+        --audio_dir $decode_log/pred_audio/$audio_prompt \
+        --reference $decode_log/gt_text    
 
 # jsonl dataset
 manifest_format=jsonl
@@ -693,7 +810,35 @@ val_data_name="truthful_test"
 val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=470
 
+# huggingface dataset
+# manifest_format=datasets
+# val_data_path="/data/ruiqi.yan/data/voicebench"
+# val_data_name="sd-qa"     # alpacaeval，commoneval，sd-qa
+load_from_cache_file=false
+dataset_sample_seed=888
+
+# model settings
+tts_adapter=false
+group_decode=true
+group_decode_adapter_type=linear
+
 # decode config
+text_repetition_penalty=1.2
+audio_repetition_penalty=1.2        # default 1.0, set to 1.2 for reduce silence
+max_new_tokens=3000                 # 500 for SNAC, 3000 for CosyVoice-single
+do_sample=false
+top_p=0.9
+top_k=50
+temperature=1.0
+decode_text_only=false
+upsampling_factor=1
+
+output_text_only=false
+speech_sample_rate=22050    # 22050 for CosyVoice, 24000 for SNAC
+inference_online=false
+audio_prompt_path=/data/ruiqi.yan/SLAM-LLM/examples/s2s/audio_prompt/en/prompt_6.wav      # replace this with your own audio prompt path or our provided audio prompt path
+audio_prompt=prompt_6
+
 decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_greedy_${val_data_name}
 if [ "$do_sample" = true ] ; then
     decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_sampling_topk${top_k}_topp${top_p}_temp${temperature}_${val_data_name}
@@ -764,6 +909,7 @@ python $code_dir/s2s/inference_s2s.py \
         ++decode_config.decode_text_only=$decode_text_only \
         ++decode_config.upsampling_factor=$upsampling_factor \
         ++decode_config.do_layershift=$do_layershift \
+        ++decode_config.num_latency_tokens=$num_latency_tokens \
         ++decode_log=$decode_log \
         ++ckpt_path=$ckpt_path/model.pt \
         ++output_text_only=$output_text_only \
@@ -788,17 +934,17 @@ python $code_dir/asr_for_eval.py \
 # semi-open: storal_test, summary_test, truthful_test
 # qa: gaokao_test, gsm8k_test, mlc_test
 # wer: repeat_test
-mode="semi-open"    # open, semi-open, qa, contrast
+mode="semi-open"    # open, semi-open, qa, wer, contrast
 
 python $code_dir/mark.py \
         --mode $mode \
         --question $decode_log/question_text \
         --answer $decode_log/asr_text \
+        --answer_text $decode_log/pred_text \
         --output_dir $output_dir \
         --dataset $val_data_name \
-        --reference $decode_log/gt_text  
-
-# ----------------------------------------------------------------------
+        --audio_dir $decode_log/pred_audio/$audio_prompt \
+        --reference $decode_log/gt_text    
 
 # jsonl dataset
 manifest_format=jsonl
@@ -816,7 +962,35 @@ val_data_name="gaokao_test"
 val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=303
 
+# huggingface dataset
+# manifest_format=datasets
+# val_data_path="/data/ruiqi.yan/data/voicebench"
+# val_data_name="sd-qa"     # alpacaeval，commoneval，sd-qa
+load_from_cache_file=false
+dataset_sample_seed=888
+
+# model settings
+tts_adapter=false
+group_decode=true
+group_decode_adapter_type=linear
+
 # decode config
+text_repetition_penalty=1.2
+audio_repetition_penalty=1.2        # default 1.0, set to 1.2 for reduce silence
+max_new_tokens=3000                 # 500 for SNAC, 3000 for CosyVoice-single
+do_sample=false
+top_p=0.9
+top_k=50
+temperature=1.0
+decode_text_only=false
+upsampling_factor=1
+
+output_text_only=false
+speech_sample_rate=22050    # 22050 for CosyVoice, 24000 for SNAC
+inference_online=false
+audio_prompt_path=/data/ruiqi.yan/SLAM-LLM/examples/s2s/audio_prompt/en/prompt_6.wav      # replace this with your own audio prompt path or our provided audio prompt path
+audio_prompt=prompt_6
+
 decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_greedy_${val_data_name}
 if [ "$do_sample" = true ] ; then
     decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_sampling_topk${top_k}_topp${top_p}_temp${temperature}_${val_data_name}
@@ -887,6 +1061,7 @@ python $code_dir/s2s/inference_s2s.py \
         ++decode_config.decode_text_only=$decode_text_only \
         ++decode_config.upsampling_factor=$upsampling_factor \
         ++decode_config.do_layershift=$do_layershift \
+        ++decode_config.num_latency_tokens=$num_latency_tokens \
         ++decode_log=$decode_log \
         ++ckpt_path=$ckpt_path/model.pt \
         ++output_text_only=$output_text_only \
@@ -911,17 +1086,17 @@ python $code_dir/asr_for_eval.py \
 # semi-open: storal_test, summary_test, truthful_test
 # qa: gaokao_test, gsm8k_test, mlc_test
 # wer: repeat_test
-mode="qa"    # open, semi-open, qa, contrast
+mode="qa"    # open, semi-open, qa, wer, contrast
 
 python $code_dir/mark.py \
         --mode $mode \
         --question $decode_log/question_text \
         --answer $decode_log/asr_text \
+        --answer_text $decode_log/pred_text \
         --output_dir $output_dir \
         --dataset $val_data_name \
+        --audio_dir $decode_log/pred_audio/$audio_prompt \
         --reference $decode_log/gt_text    
-
-# ----------------------------------------------------------------------
 
 # jsonl dataset
 manifest_format=jsonl
@@ -939,7 +1114,35 @@ val_data_name="gsm8k_test"
 val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=582
 
+# huggingface dataset
+# manifest_format=datasets
+# val_data_path="/data/ruiqi.yan/data/voicebench"
+# val_data_name="sd-qa"     # alpacaeval，commoneval，sd-qa
+load_from_cache_file=false
+dataset_sample_seed=888
+
+# model settings
+tts_adapter=false
+group_decode=true
+group_decode_adapter_type=linear
+
 # decode config
+text_repetition_penalty=1.2
+audio_repetition_penalty=1.2        # default 1.0, set to 1.2 for reduce silence
+max_new_tokens=3000                 # 500 for SNAC, 3000 for CosyVoice-single
+do_sample=false
+top_p=0.9
+top_k=50
+temperature=1.0
+decode_text_only=false
+upsampling_factor=1
+
+output_text_only=false
+speech_sample_rate=22050    # 22050 for CosyVoice, 24000 for SNAC
+inference_online=false
+audio_prompt_path=/data/ruiqi.yan/SLAM-LLM/examples/s2s/audio_prompt/en/prompt_6.wav      # replace this with your own audio prompt path or our provided audio prompt path
+audio_prompt=prompt_6
+
 decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_greedy_${val_data_name}
 if [ "$do_sample" = true ] ; then
     decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_sampling_topk${top_k}_topp${top_p}_temp${temperature}_${val_data_name}
@@ -1010,6 +1213,7 @@ python $code_dir/s2s/inference_s2s.py \
         ++decode_config.decode_text_only=$decode_text_only \
         ++decode_config.upsampling_factor=$upsampling_factor \
         ++decode_config.do_layershift=$do_layershift \
+        ++decode_config.num_latency_tokens=$num_latency_tokens \
         ++decode_log=$decode_log \
         ++ckpt_path=$ckpt_path/model.pt \
         ++output_text_only=$output_text_only \
@@ -1034,17 +1238,17 @@ python $code_dir/asr_for_eval.py \
 # semi-open: storal_test, summary_test, truthful_test
 # qa: gaokao_test, gsm8k_test, mlc_test
 # wer: repeat_test
-mode="qa"    # open, semi-open, qa, contrast
+mode="qa"    # open, semi-open, qa, wer, contrast
 
 python $code_dir/mark.py \
         --mode $mode \
         --question $decode_log/question_text \
         --answer $decode_log/asr_text \
+        --answer_text $decode_log/pred_text \
         --output_dir $output_dir \
         --dataset $val_data_name \
+        --audio_dir $decode_log/pred_audio/$audio_prompt \
         --reference $decode_log/gt_text    
-
-# ----------------------------------------------------------------------
 
 # jsonl dataset
 manifest_format=jsonl
@@ -1062,7 +1266,35 @@ val_data_name="mlc_test"
 val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=177
 
+# huggingface dataset
+# manifest_format=datasets
+# val_data_path="/data/ruiqi.yan/data/voicebench"
+# val_data_name="sd-qa"     # alpacaeval，commoneval，sd-qa
+load_from_cache_file=false
+dataset_sample_seed=888
+
+# model settings
+tts_adapter=false
+group_decode=true
+group_decode_adapter_type=linear
+
 # decode config
+text_repetition_penalty=1.2
+audio_repetition_penalty=1.2        # default 1.0, set to 1.2 for reduce silence
+max_new_tokens=3000                 # 500 for SNAC, 3000 for CosyVoice-single
+do_sample=false
+top_p=0.9
+top_k=50
+temperature=1.0
+decode_text_only=false
+upsampling_factor=1
+
+output_text_only=false
+speech_sample_rate=22050    # 22050 for CosyVoice, 24000 for SNAC
+inference_online=false
+audio_prompt_path=/data/ruiqi.yan/SLAM-LLM/examples/s2s/audio_prompt/en/prompt_6.wav      # replace this with your own audio prompt path or our provided audio prompt path
+audio_prompt=prompt_6
+
 decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_greedy_${val_data_name}
 if [ "$do_sample" = true ] ; then
     decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_sampling_topk${top_k}_topp${top_p}_temp${temperature}_${val_data_name}
@@ -1133,6 +1365,7 @@ python $code_dir/s2s/inference_s2s.py \
         ++decode_config.decode_text_only=$decode_text_only \
         ++decode_config.upsampling_factor=$upsampling_factor \
         ++decode_config.do_layershift=$do_layershift \
+        ++decode_config.num_latency_tokens=$num_latency_tokens \
         ++decode_log=$decode_log \
         ++ckpt_path=$ckpt_path/model.pt \
         ++output_text_only=$output_text_only \
@@ -1157,17 +1390,17 @@ python $code_dir/asr_for_eval.py \
 # semi-open: storal_test, summary_test, truthful_test
 # qa: gaokao_test, gsm8k_test, mlc_test
 # wer: repeat_test
-mode="qa"    # open, semi-open, qa, contrast
+mode="qa"    # open, semi-open, qa, wer, contrast
 
 python $code_dir/mark.py \
         --mode $mode \
         --question $decode_log/question_text \
         --answer $decode_log/asr_text \
+        --answer_text $decode_log/pred_text \
         --output_dir $output_dir \
         --dataset $val_data_name \
-        --reference $decode_log/gt_text   
-
-# ----------------------------------------------------------------------
+        --audio_dir $decode_log/pred_audio/$audio_prompt \
+        --reference $decode_log/gt_text    
 
 # jsonl dataset
 manifest_format=jsonl
@@ -1185,7 +1418,35 @@ val_data_name="repeat_test"
 val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=252
 
+# huggingface dataset
+# manifest_format=datasets
+# val_data_path="/data/ruiqi.yan/data/voicebench"
+# val_data_name="sd-qa"     # alpacaeval，commoneval，sd-qa
+load_from_cache_file=false
+dataset_sample_seed=888
+
+# model settings
+tts_adapter=false
+group_decode=true
+group_decode_adapter_type=linear
+
 # decode config
+text_repetition_penalty=1.2
+audio_repetition_penalty=1.2        # default 1.0, set to 1.2 for reduce silence
+max_new_tokens=3000                 # 500 for SNAC, 3000 for CosyVoice-single
+do_sample=false
+top_p=0.9
+top_k=50
+temperature=1.0
+decode_text_only=false
+upsampling_factor=1
+
+output_text_only=false
+speech_sample_rate=22050    # 22050 for CosyVoice, 24000 for SNAC
+inference_online=false
+audio_prompt_path=/data/ruiqi.yan/SLAM-LLM/examples/s2s/audio_prompt/en/prompt_6.wav      # replace this with your own audio prompt path or our provided audio prompt path
+audio_prompt=prompt_6
+
 decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_greedy_${val_data_name}
 if [ "$do_sample" = true ] ; then
     decode_log=$ckpt_path/s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_sampling_topk${top_k}_topp${top_p}_temp${temperature}_${val_data_name}
@@ -1256,6 +1517,7 @@ python $code_dir/s2s/inference_s2s.py \
         ++decode_config.decode_text_only=$decode_text_only \
         ++decode_config.upsampling_factor=$upsampling_factor \
         ++decode_config.do_layershift=$do_layershift \
+        ++decode_config.num_latency_tokens=$num_latency_tokens \
         ++decode_log=$decode_log \
         ++ckpt_path=$ckpt_path/model.pt \
         ++output_text_only=$output_text_only \
@@ -1280,12 +1542,18 @@ python $code_dir/asr_for_eval.py \
 # semi-open: storal_test, summary_test, truthful_test
 # qa: gaokao_test, gsm8k_test, mlc_test
 # wer: repeat_test
-mode="wer"    # open, semi-open, qa, contrast
+mode="wer"    # open, semi-open, qa, wer, contrast
 
 python $code_dir/mark.py \
         --mode $mode \
         --question $decode_log/question_text \
         --answer $decode_log/asr_text \
+        --answer_text $decode_log/pred_text \
         --output_dir $output_dir \
         --dataset $val_data_name \
-        --reference $decode_log/gt_text 
+        --audio_dir $decode_log/pred_audio/$audio_prompt \
+        --reference $decode_log/gt_text    
+
+python $code_dir/evaluate.py \
+        --eval_dir $ckpt_path \
+        --name_format s2s_decode_${split}_trp${text_repetition_penalty}_arp${audio_repetition_penalty}_seed${dataset_sample_seed}_greedy_

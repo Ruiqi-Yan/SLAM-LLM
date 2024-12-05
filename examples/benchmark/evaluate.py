@@ -4,7 +4,7 @@ import logging
 import os
 import jsonlines
 
-def conclude(dir):
+def conclude(dir, non_asr, name_format):
     datasets = {"alpacaeval_test": "result_open.jsonl", 
                 "commoneval_test": "result_open.jsonl", 
                 "wildchat_test": "result_open.jsonl", 
@@ -24,7 +24,14 @@ def conclude(dir):
     wer_num = 0
     with jsonlines.open(os.path.join(dir, "evaluation.jsonl"), mode='w') as r:
         for dataset, result in datasets.items():
-            result_dir = os.path.join(dir, f"{dataset}/eval_with_asr/{dataset}")
+            if name_format is not None:
+                if not non_asr:
+                    result_dir = os.path.join(dir, f"{name_format}{dataset}/eval_with_asr/{dataset}")
+                else: result_dir = os.path.join(dir, f"{name_format}{dataset}/eval/{dataset}")
+            else:
+                if not non_asr:
+                    result_dir = os.path.join(dir, f"{dataset}/eval_with_asr/{dataset}")
+                else: result_dir = os.path.join(dir, f"{dataset}/eval/{dataset}")
             result_file = os.path.join(result_dir, result)
             utmos_file = os.path.join(result_dir, "result_utmos.jsonl")
             wer_file = os.path.join(result_dir, "result_wer.jsonl")
@@ -51,11 +58,16 @@ def conclude(dir):
                         data = item
                     wer_num += 1
                     wer_sum += data["final_WER"]
-    return score_sum / result_num, utmos_sum / utmos_num, wer_sum / wer_num
+    final_score = score_sum / result_num if result_num != 0 else 0
+    final_utmos = utmos_sum / utmos_num if utmos_num != 0 else 0
+    final_wer = wer_sum / wer_num if wer_num != 0 else 0
+    return final_score, final_utmos, final_wer
 
 def main():
     parser = ArgumentParser()
     parser.add_argument('--eval_dir', type=str, required=True)
+    parser.add_argument('--non_asr', action="store_true")
+    parser.add_argument('--name_format', required=False)
     args = parser.parse_args()
 
     # Set log
@@ -67,7 +79,9 @@ def main():
 
     # evaluate
     dir = args.eval_dir
-    score, utmos, wer = conclude(dir)
+    non_asr = args.non_asr
+    name_format = args.name_format
+    score, utmos, wer = conclude(dir, non_asr, name_format)
     with jsonlines.open(os.path.join(dir, "evaluation.jsonl"), mode='a') as f:
         f.write({"final_score": score})
         f.write({"final_UTMOS": utmos})

@@ -97,6 +97,14 @@ def main():
                 target_text = item['target_text']
             else:
                 target_text = item['source_text']
+            # fix some bugs
+            if str(args.dataset).split('/')[-2] == "gaokao_test" and step == 297:
+                pt.write({str(step).zfill(4): " "})
+                qt.write({str(step).zfill(4): input_text})
+                if isinstance(target_text, list):
+                    gt.write({str(step).zfill(4): ' / '.join(target_text)})
+                else: gt.write({str(step).zfill(4): target_text})
+                continue
             if args.modality == 'audio':
                 audio = torchaudio.load(input_path)[0].squeeze().numpy()
                 response = assistant.generate_audio(audio)

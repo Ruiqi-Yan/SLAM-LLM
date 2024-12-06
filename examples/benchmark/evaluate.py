@@ -37,15 +37,17 @@ def conclude(dir, non_asr, name_format):
             wer_file = os.path.join(result_dir, "result_wer.jsonl")
             if os.path.exists(result_file):
                 with open(result_file, 'r') as f:
+                    num = 0
                     for item in jsonlines.Reader(f):
                         data = item
+                        num += 1
                     result_num += 1
                     if dataset == "repeat_test":
                         score_sum += data["ok_rate"] * (1 - data["final_WER_for_ok_case"]) * 100
-                        r.write({f"score on {dataset}": data["ok_rate"] * (1 - data["final_WER_for_ok_case"]) * 100})
+                        r.write({"samples": num - 1, f"score on {dataset}": data["ok_rate"] * (1 - data["final_WER_for_ok_case"]) * 100})
                     else: 
                         score_sum += data["final_score"]
-                        r.write({f"score on {dataset}": data["final_score"]})
+                        r.write({"samples": num - 1, f"score on {dataset}": data["final_score"]})
             if os.path.exists(utmos_file):
                 with open(utmos_file, 'r') as f:
                     for item in jsonlines.Reader(f):

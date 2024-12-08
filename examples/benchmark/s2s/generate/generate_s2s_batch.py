@@ -206,7 +206,12 @@ def main(kwargs: DictConfig):
 					with torch.inference_mode():
 						audio_hat = codec_decoder.decode(audio)
 				elif code_type == "CosyVoice":
-					audio_hat = audio_decode_cosyvoice(audio_tokens, model_config, codec_decoder, tone_dir, audio_prompt_path, code_layer, num_latency_tokens, speed=1.0)
+					# fix some bugs
+					try:
+						audio_hat = audio_decode_cosyvoice(audio_tokens, model_config, codec_decoder, tone_dir, audio_prompt_path, code_layer, num_latency_tokens, speed=1.0)
+					except:
+						logger.warning(f"Something wrong with cosyvoice, skip.")
+						continue
 				else:
 					raise NotImplementedError
 				if key is not None:

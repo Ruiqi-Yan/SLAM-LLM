@@ -1,5 +1,5 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=7
 export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=1
 export LD_LIBRARY_PATH=/home/visitor/miniconda3/envs/yrq-omni/lib:$LD_LIBRARY_PATH
@@ -531,7 +531,7 @@ data_number=252
 # inference output dir
 decode_log=/data/ruiqi.yan/omni_models/Freeze-Omni-test/${val_data_name}
 
-# -m debugpy --listen 5678 --wait-for-client
+-m debugpy --listen 5678 --wait-for-client
 python $code_dir/Freeze-Omni-test/inference_for_eval.py \
         --model_path $ckpt_dir/checkpoints \
         --llm_path $ckpt_dir/Qwen2-7B-Instruct \

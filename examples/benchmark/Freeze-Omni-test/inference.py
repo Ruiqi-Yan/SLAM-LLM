@@ -26,18 +26,15 @@ from models.decoder.llm2tts import llm2TTS
 from web.parms import GlobalParams
 from web.pool import TTSObjectPool
 
-import jsonlines
-import logging
-
 def get_args():
     parser = argparse.ArgumentParser(description='Freeze-Omni')
-    parser.add_argument('--dataset', required=True)
-    parser.add_argument('--output_dir', required=True)
     parser.add_argument('--model_path', required=True, help='model_path to load')
     parser.add_argument('--llm_path', required=True, help='llm_path to load')
     parser.add_argument('--top_k', type=int, default=5)
     parser.add_argument('--top_p', type=float, default=0.8)
     parser.add_argument('--temperature', type=float, default=0.7)
+    parser.add_argument('--input_wav', required=True, help='input wav')
+    parser.add_argument('--output_wav', required=True, help='output wav')
 
     args = parser.parse_args()
     print(args)
@@ -135,7 +132,7 @@ def inference(pipeline, audio_processor, tts, input_wav_path, output_wav_path):
         wav_input[:wav.shape[0]] = wav
     except:
         print("error")
-        return " "
+        return
     for i in range(0, wav_input.shape[0], chunk_size):
         fbank = audio_processor.process(wav_input[i:i+chunk_size])
         outputs = pipeline.speech_dialogue(fbank, **outputs)
@@ -173,8 +170,7 @@ def inference(pipeline, audio_processor, tts, input_wav_path, output_wav_path):
             cur_text += outputs['text'][len(last_text):]
             suffix_list = ["。", "：", "？", "！", ".", "?","!", "\n"]
             if outputs['text'][len(last_text):].endswith(tuple(suffix_list)):
-                # fix string index out of range bugs
-                if outputs['text'][len(last_text):].endswith(".") and len(last_text) != 0 and last_text[-1].isdigit():
+                if outputs['text'][len(last_text):].endswith(".") and last_text[-1].isdigit():
                     pass
                 else:
                     if len(cur_hidden_state) > 0:
@@ -193,59 +189,20 @@ def inference(pipeline, audio_processor, tts, input_wav_path, output_wav_path):
     # fix some bugs
     if(len(wav) == 0):
         print("error")
-        return whole_text
+        return
     sf.write(output_wav_path, torch.cat(wav, -1).squeeze().float().cpu().numpy(), 24000)
     outputs['stat'] = 'sl'
     outputs['last_id'] = None
     print(whole_text)
-    return whole_text
 
 if __name__ == '__main__':
     configs = get_args()
-
-     # Set log
-    logging.basicConfig(
-		level=logging.INFO, 
-		format="[%(asctime)s][%(name)s][%(levelname)s] - %(message)s",
-		datefmt="%Y-%m-%d %H:%M:%S"
-	)
-
-    # inference
-    output_dir = configs.output_dir
-    output_audio_dir = os.path.join(output_dir, "audio")
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir, exist_ok=True)
-    if not os.path.exists(output_audio_dir):
-        os.makedirs(output_audio_dir, exist_ok=True)
-    pred_text = os.path.join(output_dir, "pred_text")
-    question_text = os.path.join(output_dir, "question_text")
-    gt_text = os.path.join(output_dir, "gt_text")
-
-    logging.info("<========loading model========>")
     pipeline = inferencePipeline(configs)
     tts = llm2TTS(configs.model_path)
     audio_processor = audioEncoderProcessor()
 
     # 做批量处理的时候这里加个循环就好了
-    logging.info("<========inference starts========>")
-    with open(configs.dataset, 'r') as f, jsonlines.open(pred_text, mode='w') as pt, jsonlines.open(question_text, mode='w') as qt, jsonlines.open(gt_text, mode='w') as gt:
-        for step, item in enumerate(jsonlines.Reader(f)):
-            input_path = os.path.join(os.path.dirname(configs.dataset), item["source_wav"])
-            output_path = os.path.join(output_audio_dir, str(step).zfill(4) + ".wav")
-            input_text = item["source_text"]
-            if 'target_text' in item:
-                target_text = item['target_text']
-            else:
-                target_text = item['source_text']
-            output = inference(pipeline, audio_processor, tts, input_path, output_path)
-            logging.info(f"Input text: {input_text}")
-            logging.info(f"Output text: {output}")
-            logging.info(f"output audio saved to {output_audio_dir}/{step:04d}.wav")
-            pt.write({str(step).zfill(4): output})
-            qt.write({str(step).zfill(4): input_text})
-            if isinstance(target_text, list):
-                gt.write({str(step).zfill(4): ' / '.join(target_text)})
-            else: gt.write({str(step).zfill(4): target_text})
+    inference(pipeline, audio_processor, tts, configs.input_wav, configs.output_wav)
 
 
 # python bin/inference.py \

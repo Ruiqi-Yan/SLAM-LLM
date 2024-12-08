@@ -1,5 +1,5 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=4
+export CUDA_VISIBLE_DEVICES=5
 export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=1
 export LD_LIBRARY_PATH=/home/visitor/miniconda3/envs/yrq-omni/lib:$LD_LIBRARY_PATH
@@ -60,3 +60,5 @@ python $code_dir/mark.py \
         --dataset $val_data_name \
         --audio_dir $decode_log/audio \
         --reference $decode_log/gt_text
+
+python $code_dir/evaluate.py --eval_dir /data/ruiqi.yan/omni_models/mini-omni-test

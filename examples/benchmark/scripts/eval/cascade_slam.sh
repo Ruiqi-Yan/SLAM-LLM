@@ -1,5 +1,5 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=5
+export CUDA_VISIBLE_DEVICES=7
 export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=1
 export LD_LIBRARY_PATH=/home/visitor/miniconda3/envs/yrq-omni/lib:$LD_LIBRARY_PATH
@@ -28,10 +28,10 @@ total_vocabsize=156160  # 152000 + 4160 Sry: Here is not elegant to set the tota
 # code settings
 code_type=CosyVoice     # CosyVoice or SNAC
 codec_decoder_type=CosyVoice
-num_latency_tokens=10    # number of latency tokens (same as the number in training)
+num_latency_tokens=3    # number of latency tokens (same as the number in training)
 do_layershift=false      # if false, tokens in each layers use the same codebook, otherwise, use different codebooks
 
-ckpt_path=/data/ruiqi.yan/omni_models/model/gpu4-btz3-lr5e-4-fp16-epochs10-whisper_small-single-latency10
+ckpt_path=/data/ruiqi.yan/omni_models/model/gpu4-btz3-lr5e-4-fp16-epochs10-whisper_small-single-latency3-s2s_epoch_3_step_8144
 split=test
 
 # jsonl dataset
@@ -59,7 +59,7 @@ dataset_sample_seed=888
 
 # model settings
 tts_adapter=false
-group_decode=true
+group_decode=false
 group_decode_adapter_type=linear
 
 # decode config
@@ -211,7 +211,7 @@ dataset_sample_seed=888
 
 # model settings
 tts_adapter=false
-group_decode=true
+group_decode=false
 group_decode_adapter_type=linear
 
 # decode config
@@ -363,7 +363,7 @@ dataset_sample_seed=888
 
 # model settings
 tts_adapter=false
-group_decode=true
+group_decode=false
 group_decode_adapter_type=linear
 
 # decode config
@@ -515,7 +515,7 @@ dataset_sample_seed=888
 
 # model settings
 tts_adapter=false
-group_decode=true
+group_decode=false
 group_decode_adapter_type=linear
 
 # decode config
@@ -667,7 +667,7 @@ dataset_sample_seed=888
 
 # model settings
 tts_adapter=false
-group_decode=true
+group_decode=false
 group_decode_adapter_type=linear
 
 # decode config
@@ -819,7 +819,7 @@ dataset_sample_seed=888
 
 # model settings
 tts_adapter=false
-group_decode=true
+group_decode=false
 group_decode_adapter_type=linear
 
 # decode config
@@ -971,7 +971,7 @@ dataset_sample_seed=888
 
 # model settings
 tts_adapter=false
-group_decode=true
+group_decode=false
 group_decode_adapter_type=linear
 
 # decode config
@@ -1123,7 +1123,7 @@ dataset_sample_seed=888
 
 # model settings
 tts_adapter=false
-group_decode=true
+group_decode=false
 group_decode_adapter_type=linear
 
 # decode config
@@ -1275,7 +1275,7 @@ dataset_sample_seed=888
 
 # model settings
 tts_adapter=false
-group_decode=true
+group_decode=false
 group_decode_adapter_type=linear
 
 # decode config
@@ -1427,7 +1427,7 @@ dataset_sample_seed=888
 
 # model settings
 tts_adapter=false
-group_decode=true
+group_decode=false
 group_decode_adapter_type=linear
 
 # decode config

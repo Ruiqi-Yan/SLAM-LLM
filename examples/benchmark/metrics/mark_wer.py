@@ -40,8 +40,12 @@ def run_asr_wer(lang, item):
         truth = truth.lower()
         hypo = hypo.lower()
 
-    measures = compute_measures(truth, hypo)
-    wer = measures["wer"]
+    try:
+        measures = compute_measures(truth, hypo)
+    except:
+        wer = 1
+    else:
+        wer = measures["wer"]
 
     # ref_list = truth.split(" ")
     # subs = measures["substitutions"] / len(ref_list)
@@ -79,7 +83,11 @@ def calculate_wer(item):
     english_normalizer = EnglishTextNormalizer()
     text1 = english_normalizer(item['answer'].strip().lower())
     text2 = english_normalizer(item['reference'].strip().lower())
-    return jiwer.wer(text1, text2)
+    try:
+        wer = jiwer.wer(text1, text2)
+    except:
+        wer = 1
+    return wer
 
 def eval_repeat(args):
     output_file = os.path.join(args.output_dir, 'result_repeat_wer.jsonl')

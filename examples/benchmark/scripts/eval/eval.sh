@@ -1,5 +1,5 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=4
 export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=1
 export LD_LIBRARY_PATH=/home/visitor/miniconda3/envs/yrq-omni/lib:$LD_LIBRARY_PATH
@@ -21,17 +21,17 @@ llm_dim=896     # 896 1536 3584 8192  -> 0.5B 1.5B 3.5B 7B
 task_type=s2s
 
 # vocabulary settings
-code_layer=2            # 1 single semantic code layer   2 3 4 5 6 7 8 group semantic code layers 
+code_layer=3            # 1 single semantic code layer   2 3 4 5 6 7 8 group semantic code layers 
 total_audio_vocabsize=4160
 total_vocabsize=156160  # 152000 + 4160 Sry: Here is not elegant to set the total_vocabsize manually, I may fix it later :)
 
 # code settings
 code_type=CosyVoice     # CosyVoice or SNAC
 codec_decoder_type=CosyVoice
-num_latency_tokens=10    # number of latency tokens (same as the number in training)
+num_latency_tokens=5    # number of latency tokens (same as the number in training)
 do_layershift=false      # if false, tokens in each layers use the same codebook, otherwise, use different codebooks
 
-ckpt_path=/data/ruiqi.yan/omni_models/model/gpu4-btz6-lr5e-4-fp16-epochs10-whisper_small-group2-latency10
+ckpt_path=/data/ruiqi.yan/omni_models/ablation-Paper/VoiceAssistant/Qwen2-0.5b-gpu4-btz6-lr1e-4-fp16-epochs10-whisper_small-latency5-group3-Final-Ablation-VoiceAssistant-400K-v2-Total_update_100K-from_tts_pretrain-s2s_epoch_3_step_798
 split=test
 
 # jsonl dataset

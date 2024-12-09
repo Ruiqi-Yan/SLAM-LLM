@@ -1,5 +1,5 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=6
+export CUDA_VISIBLE_DEVICES=1
 export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=1
 export LD_LIBRARY_PATH=/home/visitor/miniconda3/envs/yrq-omni/lib:$LD_LIBRARY_PATH
@@ -9,6 +9,7 @@ export CUDA_LAUNCH_BLOCKING=1
 # code dir
 code_dir=/data/ruiqi.yan/SLAM-LLM/examples/benchmark
 ckpt_dir=/data/ruiqi.yan/models
+qwen_model=Qwen2-7B-Instruct
 
 # jsonl dataset
 manifest_format=jsonl
@@ -27,7 +28,7 @@ val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=199
 
 # inference output dir
-decode_log=/data/ruiqi.yan/omni_models/qwen2-test/${val_data_name}
+decode_log=/data/ruiqi.yan/omni_models/${qwen_model}-test/${val_data_name}
 
 # -m debugpy --listen 5678 --wait-for-client
 python $code_dir/qwen2-test/inference_for_eval.py \
@@ -35,7 +36,7 @@ python $code_dir/qwen2-test/inference_for_eval.py \
         --modality "audio" \
         --output_dir $decode_log \
         --whisper_path $ckpt_dir/whisper-large-v3 \
-        --qwen_path $ckpt_dir/Qwen2-0.5B-Instruct
+        --qwen_path $ckpt_dir/$qwen_model
 
 
 output_dir=$decode_log/eval/${val_data_name}
@@ -72,7 +73,7 @@ val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=200
 
 # inference output dir
-decode_log=/data/ruiqi.yan/omni_models/qwen2-test/${val_data_name}
+decode_log=/data/ruiqi.yan/omni_models/${qwen_model}-test/${val_data_name}
 
 # -m debugpy --listen 5678 --wait-for-client
 python $code_dir/qwen2-test/inference_for_eval.py \
@@ -80,7 +81,7 @@ python $code_dir/qwen2-test/inference_for_eval.py \
         --modality "audio" \
         --output_dir $decode_log \
         --whisper_path $ckpt_dir/whisper-large-v3 \
-        --qwen_path $ckpt_dir/Qwen2-0.5B-Instruct
+        --qwen_path $ckpt_dir/$qwen_model
 
 
 output_dir=$decode_log/eval/${val_data_name}
@@ -117,7 +118,7 @@ val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=349
 
 # inference output dir
-decode_log=/data/ruiqi.yan/omni_models/qwen2-test/${val_data_name}
+decode_log=/data/ruiqi.yan/omni_models/${qwen_model}-test/${val_data_name}
 
 # -m debugpy --listen 5678 --wait-for-client
 python $code_dir/qwen2-test/inference_for_eval.py \
@@ -125,7 +126,7 @@ python $code_dir/qwen2-test/inference_for_eval.py \
         --modality "audio" \
         --output_dir $decode_log \
         --whisper_path $ckpt_dir/whisper-large-v3 \
-        --qwen_path $ckpt_dir/Qwen2-0.5B-Instruct
+        --qwen_path $ckpt_dir/$qwen_model
 
 
 output_dir=$decode_log/eval/${val_data_name}
@@ -162,7 +163,7 @@ val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=201
 
 # inference output dir
-decode_log=/data/ruiqi.yan/omni_models/qwen2-test/${val_data_name}
+decode_log=/data/ruiqi.yan/omni_models/${qwen_model}-test/${val_data_name}
 
 # -m debugpy --listen 5678 --wait-for-client
 python $code_dir/qwen2-test/inference_for_eval.py \
@@ -170,7 +171,7 @@ python $code_dir/qwen2-test/inference_for_eval.py \
         --modality "audio" \
         --output_dir $decode_log \
         --whisper_path $ckpt_dir/whisper-large-v3 \
-        --qwen_path $ckpt_dir/Qwen2-0.5B-Instruct
+        --qwen_path $ckpt_dir/$qwen_model
 
 
 output_dir=$decode_log/eval/${val_data_name}
@@ -207,7 +208,7 @@ val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=118
 
 # inference output dir
-decode_log=/data/ruiqi.yan/omni_models/qwen2-test/${val_data_name}
+decode_log=/data/ruiqi.yan/omni_models/${qwen_model}-test/${val_data_name}
 
 # -m debugpy --listen 5678 --wait-for-client
 python $code_dir/qwen2-test/inference_for_eval.py \
@@ -215,7 +216,7 @@ python $code_dir/qwen2-test/inference_for_eval.py \
         --modality "audio" \
         --output_dir $decode_log \
         --whisper_path $ckpt_dir/whisper-large-v3 \
-        --qwen_path $ckpt_dir/Qwen2-0.5B-Instruct
+        --qwen_path $ckpt_dir/$qwen_model
 
 
 output_dir=$decode_log/eval/${val_data_name}
@@ -252,7 +253,7 @@ val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=470
 
 # inference output dir
-decode_log=/data/ruiqi.yan/omni_models/qwen2-test/${val_data_name}
+decode_log=/data/ruiqi.yan/omni_models/${qwen_model}-test/${val_data_name}
 
 # -m debugpy --listen 5678 --wait-for-client
 python $code_dir/qwen2-test/inference_for_eval.py \
@@ -260,7 +261,7 @@ python $code_dir/qwen2-test/inference_for_eval.py \
         --modality "audio" \
         --output_dir $decode_log \
         --whisper_path $ckpt_dir/whisper-large-v3 \
-        --qwen_path $ckpt_dir/Qwen2-0.5B-Instruct
+        --qwen_path $ckpt_dir/$qwen_model
 
 
 output_dir=$decode_log/eval/${val_data_name}
@@ -297,7 +298,7 @@ val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=303
 
 # inference output dir
-decode_log=/data/ruiqi.yan/omni_models/qwen2-test/${val_data_name}
+decode_log=/data/ruiqi.yan/omni_models/${qwen_model}-test/${val_data_name}
 
 # -m debugpy --listen 5678 --wait-for-client
 python $code_dir/qwen2-test/inference_for_eval.py \
@@ -305,7 +306,7 @@ python $code_dir/qwen2-test/inference_for_eval.py \
         --modality "audio" \
         --output_dir $decode_log \
         --whisper_path $ckpt_dir/whisper-large-v3 \
-        --qwen_path $ckpt_dir/Qwen2-0.5B-Instruct
+        --qwen_path $ckpt_dir/$qwen_model
 
 
 output_dir=$decode_log/eval/${val_data_name}
@@ -342,7 +343,7 @@ val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=582
 
 # inference output dir
-decode_log=/data/ruiqi.yan/omni_models/qwen2-test/${val_data_name}
+decode_log=/data/ruiqi.yan/omni_models/${qwen_model}-test/${val_data_name}
 
 # -m debugpy --listen 5678 --wait-for-client
 python $code_dir/qwen2-test/inference_for_eval.py \
@@ -350,7 +351,7 @@ python $code_dir/qwen2-test/inference_for_eval.py \
         --modality "audio" \
         --output_dir $decode_log \
         --whisper_path $ckpt_dir/whisper-large-v3 \
-        --qwen_path $ckpt_dir/Qwen2-0.5B-Instruct
+        --qwen_path $ckpt_dir/$qwen_model
 
 
 output_dir=$decode_log/eval/${val_data_name}
@@ -387,7 +388,7 @@ val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=177
 
 # inference output dir
-decode_log=/data/ruiqi.yan/omni_models/qwen2-test/${val_data_name}
+decode_log=/data/ruiqi.yan/omni_models/${qwen_model}-test/${val_data_name}
 
 # -m debugpy --listen 5678 --wait-for-client
 python $code_dir/qwen2-test/inference_for_eval.py \
@@ -395,7 +396,7 @@ python $code_dir/qwen2-test/inference_for_eval.py \
         --modality "audio" \
         --output_dir $decode_log \
         --whisper_path $ckpt_dir/whisper-large-v3 \
-        --qwen_path $ckpt_dir/Qwen2-0.5B-Instruct
+        --qwen_path $ckpt_dir/$qwen_model
 
 
 output_dir=$decode_log/eval/${val_data_name}
@@ -432,7 +433,7 @@ val_data_path=/data/ruiqi.yan/data/final/${val_data_name}/test.jsonl
 data_number=252
 
 # inference output dir
-decode_log=/data/ruiqi.yan/omni_models/qwen2-test/${val_data_name}
+decode_log=/data/ruiqi.yan/omni_models/${qwen_model}-test/${val_data_name}
 
 # -m debugpy --listen 5678 --wait-for-client
 python $code_dir/qwen2-test/inference_for_eval.py \
@@ -440,7 +441,7 @@ python $code_dir/qwen2-test/inference_for_eval.py \
         --modality "audio" \
         --output_dir $decode_log \
         --whisper_path $ckpt_dir/whisper-large-v3 \
-        --qwen_path $ckpt_dir/Qwen2-0.5B-Instruct
+        --qwen_path $ckpt_dir/$qwen_model
 
 
 output_dir=$decode_log/eval/${val_data_name}
@@ -460,4 +461,4 @@ python $code_dir/mark.py \
         --dataset $val_data_name \
         --reference $decode_log/gt_text
 
-python $code_dir/evaluate.py --eval_dir /data/ruiqi.yan/omni_models/qwen2-test --non_asr
+python $code_dir/evaluate.py --eval_dir /data/ruiqi.yan/omni_models/${qwen_model}-test --non_asr

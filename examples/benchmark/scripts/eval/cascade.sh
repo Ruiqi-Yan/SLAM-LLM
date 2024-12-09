@@ -1,5 +1,5 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=2
+export CUDA_VISIBLE_DEVICES=3
 export TOKENIZERS_PARALLELISM=false
 export OMP_NUM_THREADS=1
 export LD_LIBRARY_PATH=/home/visitor/miniconda3/envs/yrq-omni/lib:$LD_LIBRARY_PATH
@@ -28,10 +28,10 @@ total_vocabsize=156160  # 152000 + 4160 Sry: Here is not elegant to set the tota
 # code settings
 code_type=CosyVoice     # CosyVoice or SNAC
 codec_decoder_type=CosyVoice
-num_latency_tokens=3    # number of latency tokens (same as the number in training)
+num_latency_tokens=5    # number of latency tokens (same as the number in training)
 do_layershift=false      # if false, tokens in each layers use the same codebook, otherwise, use different codebooks
 
-ckpt_path=/data/ruiqi.yan/omni_models/model/gpu16_40g-btz3-lr5e-4-fp16-epochs10-whisper_small-latency3-group3-s2s_epoch_4_step_4179
+ckpt_path=/data/ruiqi.yan/omni_models/ablation-Paper/VoiceAssistant/Qwen2-0.5b-gpu4-btz3-lr1e-4-fp16-epochs10-whisper_small-latency5-group3-VoiceAssistant-400K-v2-Total_update_100K-from_asr_pretrain-s2s_epoch_3_step_7594
 split=test
 
 # jsonl dataset
